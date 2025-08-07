@@ -6,3 +6,4 @@ app = FastAPI()
 @app.get("/")
 def read_root():
     return {"message": "welcome to the HCSP-AI API"}
+
