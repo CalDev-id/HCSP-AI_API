@@ -3,3 +3,5 @@
 venv/
 api_key.txt
 api_mistral.txt
+__pycache__
+/__pycache__

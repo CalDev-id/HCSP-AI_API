@@ -1,45 +1,23 @@
-from chromadb import Client
-from chromadb.config import Settings
-from chromadb.errors import NotFoundError
-from sentence_transformers import SentenceTransformer
-
-# --- Setup ChromaDB (baru) ---
-client = Client(Settings(
-    persist_directory="./chroma_db",
-    anonymized_telemetry=False
-))
-
-collection_name = "pasal_sections"
-try:
-    collection = client.get_collection(name=collection_name)
-except NotFoundError:
-    collection = client.create_collection(name=collection_name)
-
-# --- Load embedding model ---
-embedding_model = SentenceTransformer("sentence-transformers/multi-qa-mpnet-base-dot-v1")
-
-# --- Fungsi retrieve dokumen ---
-def retrieve_documents(query_text: str, top_k: int = 5):
-    """
-    Mengambil pasal/section paling relevan dari ChromaDB berdasarkan query_text.
-    """
-    query_vector = embedding_model.encode(query_text).tolist()
-    results = collection.query(
-        query_embeddings=[query_vector],
-        n_results=top_k
-    )
-    # results['documents'] berbentuk list of list
-    return results['documents'][0] if 'documents' in results and results['documents'] else []
-
+from Agent.DJM.utils.chromadb import retrieve_documents
 # --- ms_agent ---
 from LLM.groq_runtime import GroqRunTime
+from typing import List
 
-def ms_agent(nama_posisi: str):
+def ms_agent(nama_posisi: str, retrieve_data: List[str]):
     groq_run = GroqRunTime()
 
     # Ambil pasal/section relevan dari ChromaDB
-    data = retrieve_documents(nama_posisi)
-    context_text = "\n\n".join(data) if data else "Tidak ada konteks pasal relevan."
+
+    context_text = "\n\n".join(retrieve_data) if retrieve_data else "Tidak ada konteks pasal relevan."
+
+    user_prompt = f"""
+    sekarang, buatkan mission statement untuk posisi berikut :
+
+Nama Posisi : {nama_posisi}
+
+
+Mission Statement hanya berupa teks narasi langsung sebutkan misinya tanpa ada kata pengantarnya, tanpa penanda seperti (-/*), dan tidak dibold !
+    """
 
     system_prompt = f"""
 Peranmu:
@@ -56,7 +34,7 @@ Tugas Utama:
 
 2. Jika posisi dengan BAND (BP) I atau II:
    - Reasoning:
-     - Gunakan tools get_context untuk mencari informasi relevan mengenai posisi tersebut.
+     - Gunakan data dari vector database untuk mencari informasi relevan mengenai posisi tersebut.
      - Dari informasi itu, jawab 3 pertanyaan:
        1. Untuk apa posisi ini ada di organisasi?
        2. Apa kontribusi posisi ini kepada organisasi?
@@ -69,23 +47,42 @@ Tugas Utama:
      - Pahami posisi dan unitnya.
    - Act:
      - Buat mission statement dengan rumus:
-       Mission Statement = “Melakukan pengelolaan fungsi ” + {{nama fungsi}} + “ untuk mendukung pencapaian performansi”
+       Mission Statement = “Melakukan pengelolaan fungsi ” + (nama fungsi) + “ untuk mendukung pencapaian performansi”
 
-4. Gunakan konteks berikut dari dokumen pasal relevan:
-{context_text}
+4. Output atau jawaban anda berupa teks bukan list hanya mengandung karakter berupa huruf atau nomor saja. 
 
-5. Output atau jawaban anda berupa teks bukan list hanya mengandung karakter berupa huruf atau nomor saja.
+------------------------------------------------------------
+
+IKUTI Contoh BERIKUT :
+
+Input:
+VP DIGITAL BUSINESS STRATEGY & GOV (BP I)
+
+Reasoning:
+- Gunakan data dari vector database → dapatkan deskripsi lengkap tentang peran ini.
+- Jawab pertanyaan (untuk apa ada, kontribusi, strategi/unit yang didukung).
+
+Output (Mission Statement):
+Bertanggung jawab atas kesiapan dan ketersediaan kebijakan (governance) bisnis digital, mekanisme, perencanaan strategi dan orkestrasi bisnis digital, platform digital (cloud PaaS/SaaS, horizontal platform dan vertical platform) Telkom Group dengan tujuan peningkatan valuasi, digital revenue, dan efisiensi biaya pengembangan (OPEX/CAPEX) yang mencakup pengembangan portofolio produk digital berbasis business plan, perencanaan roadmap bisnis & kapabilitas digital (talent, platform digital, dan infrastruktur digital) termasuk rencana build, buy, dan borrow, pengelolaan inisiatif investasi bisnis digital, perencanaan dan orkestrasi enterprise architecture untuk bisnis digital, perencanaan dan orkestrasi customer experience (CX) dan customer engagement Digitization, pelaksanaan orkestrasi bisnis digital dan platform digital Telkom Group yang meliputi orkestrasi pengembangan bisnis digital, partnership management, dan go to market, serta pengelolaan dan orkestrasi inovasi Digitalization Telkom Group.
 
 ------------------------------------------------------------
 
 Input:
-{nama_posisi}
+SO DIGITAL PLATFORM STRATEGY (BP 3)
 
-Mission Statement hanya berupa teks narasi langsung sebutkan misinya tanpa ada kata pengantarnya, tanpa penanda seperti (-/*), dan tidak dibold !
+Reasoning:
+- Posisi BP > 2 → pakai rumus.
+
+Output (Mission Statement):
+Melakukan pengelolaan fungsi Digital Platform Strategy untuk mendukung pencapaian performansi.
+
+Gunakan data dari vector database berikut dari dokumen pasal relevan:
+{context_text}
+
 """
 
     # Generate response
-    response = groq_run.generate_response(system_prompt, nama_posisi)
+    response = groq_run.generate_response(system_prompt, user_prompt)
 
     if response and hasattr(response.choices[0].message, "content"):
         mission_statement = response.choices[0].message.content.strip()

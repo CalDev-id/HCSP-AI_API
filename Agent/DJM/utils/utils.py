@@ -3,10 +3,6 @@
 import re
 
 def combine_markdown_pages(ocr_result):
-    """
-    Gabungkan semua markdown dari tiap halaman OCR.
-    Mirip node n8n 'gabung semua text di ocr'
-    """
     if not isinstance(ocr_result, dict):
         raise ValueError("ocr_result harus dict")
     pages = ocr_result.get("pages", [])
@@ -14,18 +10,16 @@ def combine_markdown_pages(ocr_result):
 
 
 def clean_pasal_title(title: str) -> str:
-    """Bersihkan judul pasal supaya rapi, mirip n8n"""
     return (
-        re.sub(r"\([^)]*\)", " ", title)             # hapus isi dalam kurung
+        re.sub(r"\([^)]*\)", " ", title)
         .replace("\n", " ")
-        .encode("ascii", "ignore").decode()          # buang karakter aneh
+        .encode("ascii", "ignore").decode()
         .strip()
         .lower()
     )
 
 
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 250):
-    """Bagi teks jadi beberapa chunk dengan overlap"""
     chunks = []
     start = 0
     while start < len(text):
@@ -36,7 +30,6 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 250):
 
 
 def split_by_pasal(input_text: str):
-    """Split teks berdasarkan 'Pasal' dan buat chunk, mirip node n8n"""
     lower_text = input_text.lower()
     sections = re.split(r"(?=pasal\s*\d+)", lower_text)
     cleaned_sections = [s for s in sections if s.strip().startswith("pasal")]
