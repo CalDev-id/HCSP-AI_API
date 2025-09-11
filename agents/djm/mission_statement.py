@@ -1,6 +1,5 @@
-from Agent.DJM.utils.chromadb import retrieve_documents
-# --- ms_agent ---
-from LLM.groq_runtime import GroqRunTime
+from utils.chromadb import retrieve_documents
+from llm.groq_runtime import GroqRunTime
 from typing import List
 
 def ms_agent(nama_posisi: str, retrieve_data: List[str]):

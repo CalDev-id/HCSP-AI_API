@@ -9,7 +9,8 @@ MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
 # --- API Key Loader ---
 def load_mistral_key():
     try:
-        with open("api_mistral.txt", "r") as f:
+        
+        with open("config/secrets/api_mistral.txt", "r") as f:
             return f.read().strip()
     except FileNotFoundError:
         raise ValueError("File api_mistral.txt tidak ditemukan")

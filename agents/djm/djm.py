@@ -1,14 +1,14 @@
 from fastapi import UploadFile
 from fastapi.responses import JSONResponse
 import traceback
-from Agent.DJM.utils.utils import combine_markdown_pages, split_by_pasal
-from Agent.DJM.utils.chromadb import add_section_to_vector_db
-from Agent.DJM.utils.mistral import extract_xlsx, ocr_pdf
-from Agent.DJM.utils.chromadb import retrieve_documents
-from Agent.DJM.mission_statement.main import ms_agent
-from Agent.DJM.job_responsibilities.main import jr_agent
-from Agent.DJM.job_performance.main import jp_agent
-from Agent.DJM.job_authorities.main import ja_agent
+from utils.utils import combine_markdown_pages, split_by_pasal
+from utils.chromadb import add_section_to_vector_db
+from utils.mistral import extract_xlsx, ocr_pdf
+from utils.chromadb import retrieve_documents
+from agents.djm.mission_statement import ms_agent
+from agents.djm.job_responsibilities import jr_agent
+from agents.djm.job_performance import jp_agent
+from agents.djm.job_authorities import ja_agent
 
 
 # --- Handler utama ---

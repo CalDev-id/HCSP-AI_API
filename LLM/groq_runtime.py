@@ -3,7 +3,7 @@ from groq import Groq
 
 class GroqRunTime():
     def __init__(self):
-        with open('api_key.txt', 'r') as txt_r:
+        with open('config/secrets/api_key.txt', 'r') as txt_r:
             os.environ["GROQ_API_KEY"] = txt_r.readlines()[0].strip()
         
         self.client = Groq(

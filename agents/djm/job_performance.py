@@ -1,6 +1,6 @@
-from Agent.DJM.utils.chromadb import retrieve_documents
+from utils.chromadb import retrieve_documents
 from typing import List
-from LLM.groq_runtime import GroqRunTime
+from llm.groq_runtime import GroqRunTime
 
 def jp_agent(nama_posisi: str, retrieve_data: List[str], job_responsibilities: str):
     groq_run = GroqRunTime()

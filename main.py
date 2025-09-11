@@ -1,7 +1,7 @@
-from LLM.groq_runtime import GroqRunTime
+from llm.groq_runtime import GroqRunTime
 from fastapi import FastAPI, UploadFile, File
-from Agent.DJM.main import handle_create_djm
-from Agent.chat.main import chat_agent
+from agents.djm.djm import handle_create_djm
+from agents.chat.main import chat_agent
 
 #uvicorn main:app --reload
 
