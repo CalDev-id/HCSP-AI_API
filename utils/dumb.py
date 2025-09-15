@@ -1,28 +1,13 @@
-import re
-import openpyxl
-from io import BytesIO
-from fastapi import UploadFile
+# utils.py
 
-async def extract_xlsx(file: UploadFile):
-    try:
-        content = await file.read()
-        wb = openpyxl.load_workbook(BytesIO(content))
-        sheet = wb.active
-        data = [list(row) for row in sheet.iter_rows(min_row=2, values_only=True)]
-        print("template file berhasil di baca")
-        return data
-    except Exception as e:
-        raise ValueError(f"Gagal membaca XLSX: {str(e)}")
+import re
 
 def combine_markdown_pages(ocr_result):
-    """
-    Gabungkan semua halaman OCR (list of dict) jadi satu string.
-    ocr_result: list[{"page": int, "content": str}]
-    """
-    if not isinstance(ocr_result, list):
-        raise ValueError("ocr_result harus list of dict, bukan dict")
+    if not isinstance(ocr_result, dict):
+        raise ValueError("ocr_result harus dict")
+    pages = ocr_result.get("pages", [])
+    return "\n\n".join(p.get("markdown", "") for p in pages)
 
-    return "\n\n".join(p.get("content", "") for p in ocr_result if p.get("content"))
 
 def clean_pasal_title(title: str) -> str:
     return (
@@ -33,6 +18,7 @@ def clean_pasal_title(title: str) -> str:
         .lower()
     )
 
+
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 250):
     chunks = []
     start = 0
@@ -41,6 +27,7 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 250):
         chunks.append(text[start:end])
         start += chunk_size - overlap
     return chunks
+
 
 def split_by_pasal(input_text: str):
     lower_text = input_text.lower()
