@@ -3,7 +3,7 @@ from groq import Groq
 
 class GroqRunTime():
     def __init__(self):
-        with open('api_key.txt', 'r') as txt_r:
+        with open('config/secrets/api_key.txt', 'r') as txt_r:
             os.environ["GROQ_API_KEY"] = txt_r.readlines()[0].strip()
         
         self.client = Groq(
@@ -23,8 +23,8 @@ class GroqRunTime():
                 }
             ],
             # model="meta-llama/llama-4-scout-17b-16e-instruct"
-            # model="llama-3.3-70b-versatile"
-            model="llama-3.1-8b-instant"
+            model="llama-3.3-70b-versatile"
+            # model="llama-3.1-8b-instant"
         )
         return responses
     

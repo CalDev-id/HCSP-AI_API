@@ -1,10 +1,11 @@
-from Agent.DJM.utils.chromadb import retrieve_documents
+from utils.chromadb import retrieve_documents
 from typing import List
-from LLM.groq_runtime import GroqRunTime
+from llm.groq_runtime import GroqRunTime
+from llm.apilogy_runtime import ApilogyRunTime
 
 def jr_agent(nama_posisi: str, retrieve_data: List[str]):
     groq_run = GroqRunTime()
-
+    apilogy_run = ApilogyRunTime()
     # Ambil pasal/section relevan dari ChromaDB
 
     context_text = "\n\n".join(retrieve_data) if retrieve_data else "Tidak ada konteks pasal relevan."
@@ -87,12 +88,14 @@ gunakan context database ini :
 """
 
     # Generate response
-    response = groq_run.generate_response(system_prompt, user_prompt)
+    # response = groq_run.generate_response(system_prompt, user_prompt)
+    # --- pakai Apilogy ---
+    response = apilogy_run.generate_response(system_prompt, user_prompt)
 
-    if response and hasattr(response.choices[0].message, "content"):
-        mission_statement = response.choices[0].message.content.strip()
-        print(mission_statement)
-        return mission_statement
+    if response and "choices" in response:
+        job_responsibilities = response["choices"][0]["message"]["content"].strip()
+        print(job_responsibilities)
+        return job_responsibilities
     else:
         print("Tidak ada respons dari AI.")
         return ""

@@ -1,9 +1,11 @@
-from Agent.DJM.utils.chromadb import retrieve_documents
+from utils.chromadb import retrieve_documents
 from typing import List
-from LLM.groq_runtime import GroqRunTime
+from llm.groq_runtime import GroqRunTime
+from llm.apilogy_runtime import ApilogyRunTime
 
 def ja_agent(nama_posisi: str, retrieve_data: List[str], job_responsibilities: str, mission_statement: str):
     groq_run = GroqRunTime()
+    apilogy_run = ApilogyRunTime()
 
     # Ambil pasal/section relevan dari ChromaDB
 
@@ -100,12 +102,15 @@ Posisi - OFFICER DIGITAL PLATFORM STRATEGY
 """
 
     # Generate response
-    response = groq_run.generate_response(system_prompt, user_prompt)
+    # response = groq_run.generate_response(system_prompt, user_prompt)
+    # --- pakai Apilogy ---
+    response = apilogy_run.generate_response(system_prompt, user_prompt)
 
-    if response and hasattr(response.choices[0].message, "content"):
-        mission_statement = response.choices[0].message.content.strip()
-        print(mission_statement)
-        return mission_statement
+    if response and "choices" in response:
+        job_authorities = response["choices"][0]["message"]["content"].strip()
+        print(job_authorities)
+        return job_authorities
     else:
         print("Tidak ada respons dari AI.")
         return ""
+

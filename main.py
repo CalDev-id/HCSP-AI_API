@@ -1,11 +1,25 @@
-from LLM.groq_runtime import GroqRunTime
+from llm.groq_runtime import GroqRunTime
 from fastapi import FastAPI, UploadFile, File
-from Agent.DJM.main import handle_create_djm
-from Agent.chat.main import chat_agent
+from agents.djm.djm import handle_create_djm
+from agents.chat.main import chat_agent
+from utils import postgredb
+from contextlib import asynccontextmanager
+
 
 #uvicorn main:app --reload
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup: inisialisasi DB pool ---
+    await postgredb.init_db_pool()
+    print("Database pool initialized.")
+    yield
+    # --- Shutdown: tutup pool jika perlu ---
+    if postgredb.pool:
+        await postgredb.pool.close()
+        print("Database pool closed.")
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 def read_root():

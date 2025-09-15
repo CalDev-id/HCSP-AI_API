@@ -1,4 +1,4 @@
-from LLM.groq_runtime import GroqRunTime
+from llm.groq_runtime import GroqRunTime
 
 def chat_agent(query: str):
     groq_run = GroqRunTime()

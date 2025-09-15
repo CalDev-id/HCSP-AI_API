@@ -1,37 +1,30 @@
 from fastapi import UploadFile
 from fastapi.responses import JSONResponse
 import traceback
-from Agent.DJM.utils.utils import combine_markdown_pages, split_by_pasal
-from Agent.DJM.utils.chromadb import add_section_to_vector_db
-from Agent.DJM.utils.mistral import extract_xlsx, ocr_pdf
-from Agent.DJM.utils.chromadb import retrieve_documents
-from Agent.DJM.mission_statement.main import ms_agent
-from Agent.DJM.job_responsibilities.main import jr_agent
-from Agent.DJM.job_performance.main import jp_agent
-from Agent.DJM.job_authorities.main import ja_agent
+# from utils.utils import combine_markdown_pages, split_by_pasal
+from utils.utils import combine_markdown_pages, split_by_pasal, extract_xlsx
+from utils.postgredb import add_section_to_vector_db2
+from utils.postgredb import retrieve_documents2
+from agents.djm.mission_statement import ms_agent
+from agents.djm.job_responsibilities import jr_agent
+from agents.djm.job_performance import jp_agent
+from agents.djm.job_authorities import ja_agent
+from utils.easy_ocr import ocr_pdf_easyocr
 
-
-# --- Handler utama ---
 async def handle_create_djm(pr_file: UploadFile, template_file: UploadFile):
     try:
-        # 1. Ekstrak XLSX
         xlsx_data = await extract_xlsx(template_file)
 
-        # 2. OCR PDF
-        ocr_result = await ocr_pdf(pr_file)
+        ocr_result = await ocr_pdf_easyocr(pr_file)
 
-        # 3. Gabungkan semua markdown halaman jadi satu teks
         combined_text = combine_markdown_pages(ocr_result)
 
-        # 4. Pecah berdasarkan pasal + chunking
         pasal_sections = split_by_pasal(combined_text)
 
-        # 5. Masukkan tiap section ke ChromaDB
         for idx, section in enumerate(pasal_sections):
             section_id = f"{pr_file.filename}_pasal_{idx}"
-            add_section_to_vector_db(section.get("chunkText", ""), section_id)
+            await add_section_to_vector_db2(section.get("chunkText", ""), section_id)
 
-        # 6. Loop setiap row di XLSX untuk panggil ms_agent
         djm_results = []
         for row in xlsx_data:
             if row and len(row) >= 2:
@@ -43,7 +36,8 @@ async def handle_create_djm(pr_file: UploadFile, template_file: UploadFile):
                     job_performance = "Nama posisi kosong"
                     job_authorities = "Nama posisi kosong"
                 else:
-                    retrieve_data = retrieve_documents(nama_posisi)
+                    # retrieve_data = retrieve_documents(nama_posisi)
+                    retrieve_data = await retrieve_documents2(nama_posisi)
                     mission_statement = ms_agent(nama_posisi, retrieve_data)
                     job_responsibilities = jr_agent(nama_posisi, retrieve_data)
                     job_performance = jp_agent(nama_posisi, retrieve_data, job_responsibilities)
@@ -57,7 +51,7 @@ async def handle_create_djm(pr_file: UploadFile, template_file: UploadFile):
                     "job_authorities": job_authorities,
                 })
 
-        # 7. Response final
+        # Response final
         return JSONResponse(content={"results": djm_results}, status_code=200)
 
     except Exception as e:
