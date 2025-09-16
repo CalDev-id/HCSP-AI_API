@@ -1,4 +1,3 @@
-from utils.chromadb import retrieve_documents
 from typing import List
 from llm.groq_runtime import GroqRunTime
 from llm.apilogy_runtime import ApilogyRunTime

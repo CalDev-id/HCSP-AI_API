@@ -10,11 +10,9 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- Startup: inisialisasi DB pool ---
     await postgredb.init_db_pool()
     print("Database pool initialized.")
     yield
-    # --- Shutdown: tutup pool jika perlu ---
     if postgredb.pool:
         await postgredb.pool.close()
         print("Database pool closed.")
@@ -29,9 +27,8 @@ def read_root():
 @app.post("/create_djm")
 async def create_djm(
     pr_file: UploadFile = File(..., description="Upload a PDF file"),
-    template_file: UploadFile = File(..., description="Upload an XLSX file")
 ):
-    return await handle_create_djm(pr_file, template_file)
+    return await handle_create_djm(pr_file)
 
 @app.post("/chat")
 def chat_endpoint(user_prompt: str):
