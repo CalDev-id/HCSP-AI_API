@@ -5,7 +5,7 @@ import json
 class ApilogyRunTime:
     def __init__(self):
         # baca api_key dari file
-        with open("config/secrets/apilogy_key.txt", "r") as f:
+        with open("config/secrets/apilogy_LLM.txt", "r") as f:
             os.environ["APILOGY_API_KEY"] = f.read().strip()
 
         self.api_key = os.environ.get("APILOGY_API_KEY")
