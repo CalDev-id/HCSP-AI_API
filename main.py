@@ -3,19 +3,30 @@ from fastapi import FastAPI, UploadFile, File
 from agents.djm.djm import handle_create_djm
 from agents.chat.main import chat_agent
 from utils import postgredb
+from utils import postgredb_apilogy
 from contextlib import asynccontextmanager
 
 
 #uvicorn main:app --reload
 
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     await postgredb.init_db_pool()
+#     print("Database pool initialized.")
+#     yield
+#     if postgredb.pool:
+#         await postgredb.pool.close()
+#         print("Database pool closed.")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await postgredb.init_db_pool()
+    await postgredb_apilogy.init_db_pool()
     print("Database pool initialized.")
     yield
-    if postgredb.pool:
-        await postgredb.pool.close()
+    if postgredb_apilogy.pool:
+        await postgredb_apilogy.pool.close()
         print("Database pool closed.")
+
 
 app = FastAPI(lifespan=lifespan)
 
