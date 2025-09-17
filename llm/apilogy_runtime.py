@@ -9,7 +9,7 @@ class ApilogyRunTime:
             os.environ["APILOGY_API_KEY"] = f.read().strip()
 
         self.api_key = os.environ.get("APILOGY_API_KEY")
-        self.url = "https://telkom-ai-dag-api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
+        self.url = "https://telkom-ai-dag.api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
 
     def generate_response(self, system_prompt: str, user_prompt: str):
         payload = {
