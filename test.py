@@ -1,7 +1,7 @@
 import requests
 import json
 
-url = "https://telkom-ai-dag-api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
+url = "https://telkom-ai-dag.api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
 
 payload = json.dumps({
   "messages": [
