@@ -1,10 +1,12 @@
 from llm.groq_runtime import GroqRunTime
-from fastapi import FastAPI, UploadFile, File
 from agents.djm.djm import handle_create_djm
 from agents.chat.main import chat_agent
 from utils import postgredb
 from utils import postgredb_apilogy
 from contextlib import asynccontextmanager
+from pydantic import BaseModel
+from fastapi import FastAPI, Form, File, UploadFile
+from typing import Optional
 
 
 #uvicorn main:app --reload
@@ -42,6 +44,10 @@ async def create_djm(
     return await handle_create_djm(pr_file)
 
 @app.post("/chat")
-def chat_endpoint(user_prompt: str):
-    response = chat_agent(user_prompt)
-    return {"response": response}
+async def chat_endpoint(
+    session_id: str = Form(...),
+    message: str = Form(...),
+    file: Optional[UploadFile] = None
+):
+    response = await chat_agent(session_id, message, file)
+    return response
