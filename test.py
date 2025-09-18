@@ -47,3 +47,11 @@ headers = {
 response = requests.request("POST", url, headers=headers, data=payload)
 
 print(response.text)
+
+# Parse JSON
+data = response.json()
+
+# Ambil hasil generate AI
+ai_content = data['choices'][0]['message']['content']
+
+print(ai_content)

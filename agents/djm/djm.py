@@ -305,19 +305,22 @@ from agents.djm.job_performance import jp_agent
 from agents.djm.job_authorities import ja_agent
 import json
 import re
-from llm.groq_runtime import GroqRunTime
+from llm.apilogy_runtime import ApilogyRunTime
 
 async def handle_create_djm(pr_file: UploadFile):
     user_id = str(uuid.uuid4()).replace("-", "_")
 
     try:
-        await create_user_table(user_id)
+        return JSONResponse(content={"response": "anjay mabar"}, status_code=200)
+        # await create_user_table(user_id)
 
         ocr_result = await ocr_pdf_apilogy(pr_file)
 
         combined_text = combine_markdown_pages(ocr_result)
 
         posisi_list = extract_positions_section(combined_text)
+
+        # return JSONResponse(content={"response": posisi_list, "length": len(posisi_list)}, status_code=200)
 
         pasal_sections = split_by_pasal(combined_text)
 
@@ -367,7 +370,7 @@ def extract_positions_section(text: str) -> list[dict]:
     )
     match = pattern.search(clean_text)
 
-    groq_run = GroqRunTime()
+    apilogy_run = ApilogyRunTime()
     user_prompt = f"""
     tolong rapihkan posisi berikut sesuai format output. rapihkan tanpa kata pengantar, langsung format json :
     {match.group(1).strip() if match else "Teks posisi tidak ditemukan"}
@@ -391,10 +394,10 @@ Contoh output:
 ]
     """
 
-    response = groq_run.generate_response(system_prompt, user_prompt)
+    response = apilogy_run.generate_response(system_prompt, user_prompt)
 
-    if response and hasattr(response.choices[0].message, "content"):
-        raw_output = response.choices[0].message.content.strip()
+    if response and "choices" in response and len(response["choices"]) > 0:
+        raw_output = response["choices"][0]["message"]["content"].strip()
 
         cleaned = (
             raw_output
