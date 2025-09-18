@@ -1,7 +1,6 @@
 from llm.groq_runtime import GroqRunTime
 from agents.djm.djm import handle_create_djm
 from agents.chat.main import chat_agent
-from utils import postgredb
 from utils import postgredb_apilogy
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
@@ -10,15 +9,6 @@ from typing import Optional
 
 
 #uvicorn main:app --reload
-
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     await postgredb.init_db_pool()
-#     print("Database pool initialized.")
-#     yield
-#     if postgredb.pool:
-#         await postgredb.pool.close()
-#         print("Database pool closed.")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
