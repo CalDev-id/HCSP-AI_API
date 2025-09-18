@@ -30,8 +30,9 @@ def read_root():
 @app.post("/create_djm")
 async def create_djm(
     pr_file: UploadFile = File(..., description="Upload a PDF file"),
+    template_file: UploadFile = File(..., description="Upload a XLSX template file")
 ):
-    return await handle_create_djm(pr_file)
+    return await handle_create_djm(pr_file, template_file)
 
 @app.post("/chat")
 async def chat_endpoint(

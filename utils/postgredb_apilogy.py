@@ -27,7 +27,7 @@ async def create_user_table(user_id: str):
 async def add_section(user_id: str, section_text: str, section_id: str):
     global pool
     table_name = f"data_pr_{user_id}"
-    vector = get_embedding(section_text)   # ✅ ambil dari API Telkom
+    vector = get_embedding(section_text)
     vector_str = "[" + ",".join(str(x) for x in vector) + "]"
 
     async with pool.acquire() as conn:
@@ -45,7 +45,7 @@ async def add_section(user_id: str, section_text: str, section_id: str):
 async def retrieve_documents(user_id: str, query_text: str, top_k: int = 5):
     global pool
     table_name = f"data_pr_{user_id}"
-    query_vector = get_embedding(query_text)   # ✅ pakai Apilogy
+    query_vector = get_embedding(query_text)
     query_vector_str = "[" + ",".join(str(x) for x in query_vector) + "]"
 
     async with pool.acquire() as conn:
