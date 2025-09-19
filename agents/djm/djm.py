@@ -16,7 +16,6 @@ from agents.djm.job_responsibilities import jr_agent
 from agents.djm.job_performance import jp_agent
 from agents.djm.job_authorities import ja_agent
 
-
 async def handle_create_djm(pr_file: UploadFile, template_file: UploadFile):
     user_id = str(uuid.uuid4()).replace("-", "_")
 

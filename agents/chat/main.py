@@ -3,6 +3,7 @@ from fastapi import UploadFile
 from langchain.agents import initialize_agent, AgentType
 from langchain.memory import ConversationBufferMemory
 from langchain_groq import ChatGroq
+from langchain.schema import SystemMessage
 import json
 import os
 import requests
@@ -22,7 +23,6 @@ def get_session_memory(session_id: str) -> ConversationBufferMemory:
 PROMOTION_MATCH_URL = "http://127.0.0.1:8000/promotion_matching"
 
 def promotion_matching_tool_fn(arg: str) -> str:
-    """Tool untuk memanggil promotion_matching API"""
     try:
         payload = json.loads(arg)
         resp = requests.post(PROMOTION_MATCH_URL, json=payload, timeout=60)
@@ -31,7 +31,6 @@ def promotion_matching_tool_fn(arg: str) -> str:
         return f"Error API promotion_matching: {e}"
 
 def create_djm_selector_tool_fn(_: str) -> str:
-    """Tool yang dipilih agent, hanya mengembalikan 'create_djm'"""
     return "create_djm"
 
 TOOLS_FOR_AGENT = [
@@ -76,7 +75,15 @@ def get_agent(memory: ConversationBufferMemory):
         llm,
         agent=AgentType.CONVERSATIONAL_REACT_DESCRIPTION,
         memory=memory,
-        verbose=True
+        verbose=True,
+        agent_kwargs={
+            "system_message": SystemMessage(
+                content=(
+                    "Kamu adalah asisten human capital dalam bahasa Indonesia. "
+                    "gunakan tools yang tersedia sesuai kebutuhan. "
+                )
+        )
+    }
     )
     return agent
 
