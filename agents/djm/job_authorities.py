@@ -1,12 +1,9 @@
 from typing import List
-from llm.groq_runtime import GroqRunTime
 from llm.apilogy_runtime import ApilogyRunTime
 
 def ja_agent(nama_posisi: str, retrieve_data: List[str], job_responsibilities: str, mission_statement: str):
-    groq_run = GroqRunTime()
-    apilogy_run = ApilogyRunTime()
 
-    # Ambil pasal/section relevan dari ChromaDB
+    apilogy_run = ApilogyRunTime()
 
     context_text = "\n\n".join(retrieve_data) if retrieve_data else "Tidak ada konteks pasal relevan."
 
@@ -100,9 +97,6 @@ Posisi - OFFICER DIGITAL PLATFORM STRATEGY
 {context_text}
 """
 
-    # Generate response
-    # response = groq_run.generate_response(system_prompt, user_prompt)
-    # --- pakai Apilogy ---
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
     if response and "choices" in response:

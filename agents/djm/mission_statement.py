@@ -1,13 +1,9 @@
-
-from llm.groq_runtime import GroqRunTime
 from typing import List
 from llm.apilogy_runtime import ApilogyRunTime
 
 def ms_agent(nama_posisi: str, retrieve_data: List[str]):
-    groq_run = GroqRunTime()
     apilogy_run = ApilogyRunTime()
-    # Ambil pasal/section relevan dari ChromaDB
-
+    
     context_text = "\n\n".join(retrieve_data) if retrieve_data else "Tidak ada konteks pasal relevan."
 
     user_prompt = f"""
@@ -80,10 +76,6 @@ Gunakan data dari vector database berikut dari dokumen pasal relevan:
 {context_text}
 
 """
-
-    # Generate response
-    # response = groq_run.generate_response(system_prompt, user_prompt)
-    # --- pakai Apilogy ---
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
     if response and "choices" in response:

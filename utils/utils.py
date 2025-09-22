@@ -2,47 +2,84 @@ import re
 import openpyxl
 from io import BytesIO
 from fastapi import UploadFile
+from typing import List, Dict
 
-async def extract_xlsx(file: UploadFile):
-    try:
-        content = await file.read()
-        wb = openpyxl.load_workbook(BytesIO(content))
-        sheet = wb.active
-        data = [list(row) for row in sheet.iter_rows(min_row=2, values_only=True)]
-        print("template file berhasil di baca")
-        return data
-    except Exception as e:
-        raise ValueError(f"Gagal membaca XLSX: {str(e)}")
-
-def combine_markdown_pages(ocr_result):
+def clean_ocr_result(ocr_result: List[Dict]) -> str:
     """
-    Gabungkan semua halaman OCR (list of dict) jadi satu string.
-    ocr_result: list[{"page": int, "content": str}]
+    OCR cleaning sesuai n8n:
+    - Hapus '->'
+    - Hapus '>', '<'
+    - Hapus '←'
+    Gabungkan semua hasil jadi 1 string dengan spasi.
     """
-    if not isinstance(ocr_result, list):
-        raise ValueError("ocr_result harus list of dict, bukan dict")
-
-    return "\n\n".join(p.get("content", "") for p in ocr_result if p.get("content"))
+    result = []
+    for page in ocr_result:
+        content = page.get("content", "")
+        if content:
+            cleaned = (
+                content.replace("->", "")
+                .replace(">", "")
+                .replace("<", "")
+                .replace("←", "")
+            )
+            result.append(cleaned)
+    return " ".join(result)
 
 def clean_pasal_title(title: str) -> str:
+    """
+    Bersihkan judul pasal sesuai n8n:
+    - Hapus isi dalam kurung ()
+    - Sisakan huruf dan spasi saja
+    - Rapikan spasi
+    - Lowercase
+    """
     return (
-        re.sub(r"\([^)]*\)", " ", title)
+        re.sub(r"\([^)]*\)", " ", title)        # hapus isi dalam kurung
         .replace("\n", " ")
-        .encode("ascii", "ignore").decode()
         .strip()
         .lower()
+        .replace("  ", " ")
+        .encode("ascii", "ignore").decode()     # buang karakter non-ascii
     )
 
-def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 250):
+def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 250) -> List[str]:
+    """
+    Word-aware chunking sesuai n8n:
+    - Potong berdasarkan kata, bukan karakter
+    - Overlap dihitung perkiraan jumlah kata
+    """
+    words = text.split()
     chunks = []
-    start = 0
-    while start < len(text):
-        end = min(start + chunk_size, len(text))
-        chunks.append(text[start:end])
-        start += chunk_size - overlap
+    current_chunk = []
+    current_length = 0
+
+    for word in words:
+        word_length = len(word) + 1  # +1 untuk spasi
+        if current_length + word_length > chunk_size:
+            # Simpan chunk
+            chunks.append(" ".join(current_chunk))
+
+            # Ambil overlap kata
+            approx_word_per_overlap = max(1, overlap // 5)
+            overlap_words = current_chunk[-approx_word_per_overlap:]
+
+            # Mulai chunk baru
+            current_chunk = overlap_words + [word]
+            current_length = sum(len(w) + 1 for w in current_chunk)
+        else:
+            current_chunk.append(word)
+            current_length += word_length
+
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+
     return chunks
 
-def split_by_pasal(input_text: str):
+def split_by_pasal(input_text: str) -> List[Dict]:
+    """
+    Split teks berdasarkan "Pasal X", cari judul, lalu chunk.
+    Output sesuai format n8n.
+    """
     lower_text = input_text.lower()
     sections = re.split(r"(?=pasal\s*\d+)", lower_text)
     cleaned_sections = [s for s in sections if s.strip().startswith("pasal")]
@@ -52,24 +89,18 @@ def split_by_pasal(input_text: str):
         start_index = lower_text.index(section_lower)
         section_original = input_text[start_index:start_index + len(section_lower)]
 
-        # Cari judul pasal
+        # Cari judul pasal (baris setelah "Pasal X")
         pasal_title = "unknown pasal"
-        match_with_br = re.search(r"Pasal\s*\d+\s*(?:<br>|\\n)\s*([^\n]+)", section_original, re.I)
+        match_title = re.search(r"Pasal\s*\d+\s+([^\(\n]+)", section_original, re.I)
+        if match_title:
+            pasal_title = clean_pasal_title(match_title.group(1).strip())
 
-        if match_with_br:
-            pasal_title = clean_pasal_title(match_with_br.group(1).strip())
-        else:
-            match_next_line = re.search(r"Pasal\s*\d+\s*\n+([^\n]+)", section_original, re.I)
-            if match_next_line:
-                pasal_title = clean_pasal_title(match_next_line.group(1).strip())
-
-        # Buat chunk
+        # Chunking sesuai n8n
         chunks = chunk_text(section_original.strip(), 1000, 250)
-        for idx, chunk in enumerate(chunks, start=1):
+        for chunk in chunks:
             output_items.append({
                 "pasalTitle": pasal_title,
-                "chunkIndex": idx,
-                "chunkText": f" =====\n        sumber pasal : {pasal_title}.\n\n{chunk}"
+                "chunkText": chunk
             })
 
     return output_items
