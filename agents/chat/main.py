@@ -30,7 +30,7 @@ def promotion_matching_tool_fn(arg: str) -> str:
     except Exception as e:
         return f"Error API promotion_matching: {e}"
 
-def create_djm_selector_tool_fn(_: str) -> str:
+def return_action_create_djm(_: str) -> str:
     return "create_djm"
 
 TOOLS_FOR_AGENT = [
@@ -41,7 +41,7 @@ TOOLS_FOR_AGENT = [
     ),
     Tool(
         name="create_djm_selector",
-        func=create_djm_selector_tool_fn,
+        func=return_action_create_djm,
         description="Pilih ini jika agent ingin membuat DJM. Tool ini hanya mengembalikan string 'create_djm'",
         return_direct=True
     ),

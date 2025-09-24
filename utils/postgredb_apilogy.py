@@ -86,8 +86,66 @@ async def retrieve_documents(user_id: str, query_text: str, top_k: int = 10, fil
 
     return combined_text
 
+# async def retrieve_documents(user_id: str, query_text: str, top_k: int = 10):
+#     global pool
+#     table_name = f"data_pr_{user_id}" 
+#     query_vector = get_embedding(query_text)
+#     query_vector_str = "[" + ",".join(str(x) for x in query_vector) + "]"
+
+#     async with pool.acquire() as conn:
+#         rows = await conn.fetch(
+#             f"""
+#             SELECT 
+#                 content
+#             FROM "{table_name}"
+#             ORDER BY (1 - (embedding <=> $1::vector)) DESC
+#             LIMIT $2;
+#             """,
+#             query_vector_str,
+#             top_k
+#         )
+
+#     # Ambil semua content
+#     contents = [row["content"] for row in rows if row["content"]]
+
+#     # Gabungkan jadi satu string compact (pakai label Chunk)
+#     combined_text = " ".join(
+#         [f"Chunk {i+1}: {c}" for i, c in enumerate(contents)]
+#     )
+
+#     # Sama persis dengan return n8n
+#     return {
+#         "combined_content": combined_text
+#     }
+
 async def drop_user_table(user_id: str):
     global pool
     table_name = f"data_pr_{user_id}"
     async with pool.acquire() as conn:
         await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
+
+async def retrieve_position_bawah(user_id: str, position_name: str):
+    global pool
+    async with pool.acquire() as conn:
+        djm_atas = await conn.fetch(
+            f'''
+            SELECT * 
+            FROM "djm_atas_{user_id}" 
+            WHERE nama_posisi ILIKE '%' || $1 || '%'
+            ''',
+            position_name
+        )
+        return [dict(record) for record in djm_atas]  # convert ke list of dict
+
+async def retrieve_position(user_id: str, position_name: str):
+    global pool
+    async with pool.acquire() as conn:
+        djm_atas = await conn.fetch(
+            f'''
+            SELECT * 
+            FROM "djm_12_temp_{user_id}" 
+            WHERE nama_posisi ILIKE '%' || $1 || '%'
+            ''',
+            position_name
+        )
+        return [dict(record) for record in djm_atas]

@@ -4,6 +4,14 @@ import asyncpg
 from utils import postgredb_apilogy
 from typing import List
 from utils.read_template import drop_excel_table
+from agents.djm.band_bawah.mission_statement import ms_agent
+from agents.djm.band_bawah.job_responsibilities import jr_agent
+from agents.djm.band_bawah.job_performance import jp_agent
+from agents.djm.band_bawah.job_authorities import ja_agent
+from fastapi.responses import JSONResponse
+from utils.postgredb_apilogy import retrieve_position_bawah
+import traceback
+
 
 class DJMData(BaseModel):
     jobId: int
@@ -16,12 +24,53 @@ class DJMData(BaseModel):
 
 # Terima LIST of DJMData
 async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
-    save_djm = await store_multiple_djm_in_db(user_id, data)
+    try:
+        await store_multiple_djm_in_db(user_id, data)
 
+        pool = postgredb_apilogy.pool
+        async with pool.acquire() as conn:
+            table_name = f"excel_djm_{user_id}"
+            query = f"""
+                SELECT jobid, nama_posisi, band_posisi, atasan 
+                FROM "{table_name}"
+                WHERE band_posisi IN ('IV', 'V', 'VI')
+            """
+            rows = await conn.fetch(query)
 
-    # Hapus tabel excel_djm_{user_id} setelah selesai
-    await drop_excel_table(user_id)
-    return save_djm
+        djm_results = await get_djm_atas(user_id)
+
+        # for row in rows:
+        for row in rows[:2]:
+            job_id = row["jobid"]
+            nama_posisi = row["nama_posisi"]
+            atasan = row["atasan"]
+
+            if not nama_posisi:
+                mission_statement = job_responsibilities = job_performance = job_authorities = "Nama posisi kosong"
+            else:
+                retrieve_data = await retrieve_position_bawah(user_id, atasan)
+                mission_statement = ms_agent(nama_posisi, retrieve_data)
+                job_responsibilities = jr_agent(nama_posisi, retrieve_data)
+                job_performance = jp_agent(nama_posisi, retrieve_data, job_responsibilities)
+                job_authorities = ja_agent(nama_posisi, retrieve_data, job_responsibilities, mission_statement)
+
+                djm_results.append({
+                    "jobId": job_id,
+                    "nama_posisi": nama_posisi,
+                    "mission_statement": mission_statement,
+                    "job_responsibilities": job_responsibilities,
+                    "job_performance": job_performance,
+                    "job_authorities": job_authorities,
+                })
+                
+        # await drop_excel_table(user_id)
+        return JSONResponse(content={"results": djm_results}, status_code=200)
+    
+    except Exception as e:
+        # await drop_excel_table(user_id)
+        err_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+        return JSONResponse(content={"error": err_msg}, status_code=500)
+
 
 
 async def store_multiple_djm_in_db(user_id: str, data: List[DJMData]):
@@ -59,3 +108,25 @@ async def store_multiple_djm_in_db(user_id: str, data: List[DJMData]):
             )
 
     return {"status": "success", "inserted": len(data), "message": f"Data stored in {table_name}"}
+
+async def get_djm_atas(user_id: str):
+    pool = postgredb_apilogy.pool
+    async with pool.acquire() as conn:
+        table_name = f"djm_atas_{user_id}"
+        query = f"""
+            SELECT jobid, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities
+            FROM "{table_name}"
+        """
+        rows = await conn.fetch(query)
+
+        results = []
+        for row in rows:
+            results.append({
+                "jobId": row["jobid"],
+                "nama_posisi": row["nama_posisi"],
+                "mission_statement": row["mission_statement"],
+                "job_responsibilities": row["job_responsibilities"],
+                "job_performance": row["job_performance"],
+                "job_authorities": row["job_authorities"],
+            })
+        return results

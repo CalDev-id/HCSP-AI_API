@@ -32,6 +32,7 @@ def read_root():
 
 @app.post("/create_djm_atas")
 async def create_djm(
+    user_id: str = Form(..., description="User ID"),
     pr_file: UploadFile = File(..., description="Upload a PDF file"),
     template_file: UploadFile = File(..., description="Upload a XLSX template file")
 ):
@@ -45,9 +46,13 @@ class DJMData(BaseModel):
     job_performance: str
     job_authorities: str
 
+class DJMRequest(BaseModel):
+    user_id: str
+    data: List[DJMData]
+
 @app.post("/create_djm_bawah")
-async def create_djm_bawah(data: List[DJMData]):
-    return await handle_create_djm_bawah(user_id, data)
+async def create_djm_bawah(request: DJMRequest):
+    return await handle_create_djm_bawah(request.user_id, request.data)
 
 @app.post("/chat")
 async def chat_endpoint(
@@ -57,6 +62,15 @@ async def chat_endpoint(
 ):
     response = await chat_agent(session_id, message, file)
     return response
+
+@app.post("/retrieve_position")
+async def retrieve_position_endpoint(position_name: str = Body(..., embed=True)):
+    try:
+        djm_atas = await postgredb_apilogy.retrieve_position(user_id, position_name)
+        results = [dict(record) for record in djm_atas]
+        return {"results": results}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 #======================================================
