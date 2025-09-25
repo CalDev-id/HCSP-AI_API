@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Form, File, UploadFile, Body
 from typing import Optional
 from typing import Dict, Any, Union, List
-
+from agents.djm.band_atas.mission_statement import ms_agent
 
 #uvicorn main:app --reload
 
@@ -69,6 +69,19 @@ async def retrieve_position_endpoint(position_name: str = Body(..., embed=True))
         djm_atas = await postgredb_apilogy.retrieve_position(user_id, position_name)
         results = [dict(record) for record in djm_atas]
         return {"results": results}
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.post('/retrieve_documents')
+async def retrieve_documents_endpoint(
+    user_id: str = Body(..., embed=True),
+    query_text: str = Body(..., embed=True),
+    band_posisi: str = Body(..., embed=True),
+):
+    try:
+        result = await postgredb_apilogy.retrieve_documents(user_id, query_text)
+        mission_statement = ms_agent(query_text, band_posisi, result)
+        return {"mission_statement": mission_statement, "raw_documents": result}
     except Exception as e:
         return {"error": str(e)}
 

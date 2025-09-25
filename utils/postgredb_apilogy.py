@@ -131,7 +131,7 @@ async def retrieve_position_bawah(user_id: str, position_name: str):
             f'''
             SELECT * 
             FROM "djm_atas_{user_id}" 
-            WHERE nama_posisi ILIKE '%' || $1 || '%'
+            WHERE LOWER(nama_posisi) = LOWER($1)
             ''',
             position_name
         )
@@ -144,8 +144,9 @@ async def retrieve_position(user_id: str, position_name: str):
             f'''
             SELECT * 
             FROM "djm_12_temp_{user_id}" 
-            WHERE nama_posisi ILIKE '%' || $1 || '%'
+            WHERE LOWER(nama_posisi) = LOWER($1)
             ''',
             position_name
         )
-        return [dict(record) for record in djm_atas]
+        return [dict(record) for record in djm_atas]  # ini aman, djm_atas pasti iterable
+

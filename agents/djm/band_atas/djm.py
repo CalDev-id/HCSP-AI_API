@@ -21,6 +21,8 @@ from agents.djm.band_atas.band_3.mission_statement import ms_agent as ms_agent3
 from agents.djm.band_atas.band_3.job_responsibilities import jr_agent as jr_agent3
 from agents.djm.band_atas.band_3.job_performance import jp_agent as jp_agent3
 from agents.djm.band_atas.band_3.job_authorities import ja_agent as ja_agent3
+from utils.easy_ocr import ocr_pdf_easyocr
+from utils.telkom_ocr import ocr_pdf_telkom
 
 
 # ============ FUNGSI UNTUK BAND 1 & 2 ============
@@ -68,8 +70,8 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
     for row in rows_band_3[:2]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
-        atasan = row["atasan"]
         band_posisi = row["band_posisi"]
+        atasan = row["atasan"]
 
         if not nama_posisi:
             mission_statement = job_responsibilities = job_performance = job_authorities = "Nama posisi kosong"
@@ -88,7 +90,6 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             "job_responsibilities": job_responsibilities,
             "job_performance": job_performance,
             "job_authorities": job_authorities,
-            "retrieve_data_atasan": retrieve_data
         }
 
         results.append(result)
@@ -100,20 +101,22 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
 async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: UploadFile):
 
     try:
-        # await create_user_table(user_id)
+        await create_user_table(user_id)
 
-        # ocr_result = await ocr_pdf_apilogy(pr_file)
-        # cleaned_text = clean_ocr_result(ocr_result)
-        # pasal_sections = split_by_pasal(cleaned_text)
+        ocr_result = await ocr_pdf_apilogy(pr_file)
+        # ocr_result = await ocr_pdf_telkom(pr_file)
 
-        # for idx, section in enumerate(pasal_sections):
-        #     section_id = f"{pr_file.filename}_pasal_{idx}"
-        #     await add_section(
-        #         user_id,
-        #         section.get("chunkText", ""),
-        #         section_id,
-        #         section.get("pasalTitle", "unknown")
-        #     )
+        cleaned_text = clean_ocr_result(ocr_result)
+        pasal_sections = split_by_pasal(cleaned_text)
+
+        for idx, section in enumerate(pasal_sections):
+            section_id = f"{pr_file.filename}_pasal_{idx}"
+            await add_section(
+                user_id,
+                section.get("chunkText", ""),
+                section_id,
+                section.get("pasalTitle", "unknown")
+            )
 
         xlsx_data = await extract_xlsx(template_file)
         await store_excel_in_db(user_id, xlsx_data)
@@ -155,7 +158,7 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
             djm_results.extend(await process_band_1_2(conn, table_temp, rows_band_1_2, user_id))
 
             # proses band 3
-            djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
+            # djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
 
         return JSONResponse(content={"results": djm_results}, status_code=200)
 

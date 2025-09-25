@@ -5,7 +5,15 @@ def ja_agent(nama_posisi: str, band_posisi: str, retrieve_data: List[dict], job_
 
     apilogy_run = ApilogyRunTime()
 
-    context_text = "\n\n".join(retrieve_data) if retrieve_data else "Tidak ada konteks pasal relevan."
+    if not retrieve_data:
+      context_text = "Tidak ada konteks pasal relevan."
+    else:
+      context_parts = []
+      for record in retrieve_data:
+          job_responsibilities = record.get("job_responsibilities", "")
+          context_parts.append(f"Job Responsibilities: {job_responsibilities}\n\n")
+        
+      context_text = "\n\n".join(context_parts)
 
     user_prompt = f"""
 
