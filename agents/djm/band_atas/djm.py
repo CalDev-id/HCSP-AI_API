@@ -102,9 +102,10 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
 
     try:
         await create_user_table(user_id)
+        ocr_result = await ocr_pdf_telkom(pr_file)
 
-        ocr_result = await ocr_pdf_apilogy(pr_file)
-        # ocr_result = await ocr_pdf_telkom(pr_file)
+        # ocr_result = await ocr_pdf_apilogy(pr_file)
+        # return JSONResponse(content={"ocr_result": ocr_result}, status_code=200)
 
         cleaned_text = clean_ocr_result(ocr_result)
         pasal_sections = split_by_pasal(cleaned_text)
@@ -158,7 +159,7 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
             djm_results.extend(await process_band_1_2(conn, table_temp, rows_band_1_2, user_id))
 
             # proses band 3
-            # djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
+            djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
 
         return JSONResponse(content={"results": djm_results}, status_code=200)
 
@@ -166,3 +167,5 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
         # await drop_user_table(user_id)
         err_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
         return JSONResponse(content={"error": err_msg}, status_code=500)
+
+
