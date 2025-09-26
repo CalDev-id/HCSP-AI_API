@@ -1,14 +1,24 @@
 
 from typing import List
-from llm.groq_runtime import GroqRunTime
 from llm.apilogy_runtime import ApilogyRunTime
 
-def jp_agent(nama_posisi: str, retrieve_data: List[str], job_responsibilities: str):
-    groq_run = GroqRunTime()
+def jp_agent(nama_posisi: str, retrieve_data: List[dict], job_responsibilities: str):
     apilogy_run = ApilogyRunTime()
-    # Ambil pasal/section relevan dari ChromaDB
 
-    context_text = "\n\n".join(retrieve_data) if retrieve_data else "Tidak ada konteks pasal relevan."
+    if not retrieve_data:
+      context_text = "Tidak ada konteks pasal relevan."
+    else:
+      context_parts = []
+      for record in retrieve_data:
+          jobId = record.get("jobId", "")
+          nama_posisi = record.get("nama_posisi", "")
+          mission_statement = record.get("mission_statement", "")
+          job_responsibilities = record.get("job_responsibilities", "")
+          job_performance = record.get("job_performance", "")
+          job_authorities = record.get("job_authorities", "")
+          context_parts.append(f"Job ID: {jobId}\nNama Posisi: {nama_posisi}\nMission Statement: {mission_statement}\nJob Responsibilities: {job_responsibilities}\nJob Performance: {job_performance}\nJob Authorities: {job_authorities}\n")
+        
+      context_text = "\n\n".join(context_parts)
 
     user_prompt = f"""
     sekarang, buatkan mission statement untuk posisi berikut :
@@ -73,9 +83,6 @@ Output JPI:
 
 """
 
-    # Generate response
-    # response = groq_run.generate_response(system_prompt, user_prompt)
-    # --- pakai Apilogy ---
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
     if response and "choices" in response:

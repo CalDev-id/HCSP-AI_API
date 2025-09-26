@@ -18,7 +18,7 @@ class ApilogyRunTime:
                 {"role": "user", "content": user_prompt}
             ],
             "max_tokens": 10000,
-            "temperature": 0.2,
+            "temperature": 0.1,
             "stream": False
         }
 
