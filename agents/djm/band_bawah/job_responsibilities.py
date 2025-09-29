@@ -19,7 +19,7 @@ def jr_agent(nama_posisi: str, retrieve_data: List[dict]):
           context_parts.append(f"Job ID: {jobId}\nNama Posisi: {nama_posisi}\nMission Statement: {mission_statement}\nJob Responsibilities: {job_responsibilities}\nJob Performance: {job_performance}\nJob Authorities: {job_authorities}\n")
         
       context_text = "\n\n".join(context_parts)
-      
+
     user_prompt = f"""
 Buatkan Job Responsibilities untuk posisi berikut :
 
@@ -100,7 +100,6 @@ gunakan context database ini :
 
     if response and "choices" in response:
         job_responsibilities = response["choices"][0]["message"]["content"].strip()
-        print(job_responsibilities)
         return job_responsibilities
     else:
         print("Tidak ada respons dari AI.")

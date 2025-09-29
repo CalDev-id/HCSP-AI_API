@@ -31,7 +31,7 @@ async def ocr_pdf_apilogy(upload_file) -> list[dict]:
                     "content": [
                         {
                             "type": "text",
-                            "text": f"Extract and return only the raw text from the document image, without any summary, interpretation, or explanation. Do not add extra words, just return the plain text as it appears in the document. Page {i}"
+                            "text": f"Ekstrak teks dari halaman berikut, lalu rapikan: - output langsung semua teks dokumen berupa teks yang telah diekstrak dari file tidak perlu kata pengantar !  - jangan hapus apapun untuk menjaga orisinalitas dari dokumen"
                         },
                         {
                             "type": "image_url",

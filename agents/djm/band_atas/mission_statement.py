@@ -19,7 +19,6 @@ Kamu adalah asisten AI HC yang membantu membuat mission statement untuk suatu po
 
     if response and "choices" in response:
         mission_statement = response["choices"][0]["message"]["content"].strip()
-        print(mission_statement)
         return mission_statement
     else:
         print("Tidak ada respons dari AI.")
