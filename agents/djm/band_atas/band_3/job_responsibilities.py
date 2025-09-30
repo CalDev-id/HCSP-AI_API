@@ -27,7 +27,6 @@ Tugasmu adalah membantu membuat Job Responsibilities (JR).\n\n==================
 
     if response and "choices" in response:
         job_responsibilities = response["choices"][0]["message"]["content"].strip()
-        print(job_responsibilities)
         return job_responsibilities
     else:
         print("Tidak ada respons dari AI.")

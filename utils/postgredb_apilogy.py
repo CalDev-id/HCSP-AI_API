@@ -18,7 +18,7 @@ async def create_user_table(user_id: str):
         await conn.execute(f'''
             DROP TABLE IF EXISTS "{table_name}";
             CREATE TABLE "{table_name}" (
-                id TEXT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 content TEXT,
                 metadata JSONB,
                 embedding vector(768)
@@ -26,28 +26,52 @@ async def create_user_table(user_id: str):
         ''')
     return table_name
 
-async def add_section(user_id: str, section_text: str, section_id: str, metadata):
+# async def add_section(user_id: str, section_text: str, section_id: str, metadata):
+#     global pool
+#     table_name = f"data_pr_{user_id}"
+#     vector = get_embedding(section_text)
+#     vector_str = "[" + ",".join(str(x) for x in vector) + "]"
+
+#     # Kalau metadata masih string → bungkus jadi dict
+#     if isinstance(metadata, str):
+#         metadata = {"pasalTitle": metadata}
+
+#     async with pool.acquire() as conn:
+#         await conn.execute(
+#             f"""
+#             INSERT INTO "{table_name}" (id, content, metadata, embedding)
+#             VALUES ($1, $2, $3::jsonb, $4::vector)
+#             ON CONFLICT (id) DO UPDATE
+#             SET content = EXCLUDED.content,
+#                 metadata = EXCLUDED.metadata,
+#                 embedding = EXCLUDED.embedding;
+#             """,
+#             section_id, section_text, json.dumps(metadata), vector_str
+#         )
+async def add_section(user_id: str, section_text: str, metadata):
     global pool
     table_name = f"data_pr_{user_id}"
-    vector = get_embedding(section_text)
-    vector_str = "[" + ",".join(str(x) for x in vector) + "]"
 
-    # Kalau metadata masih string → bungkus jadi dict
+    cleaned_text = section_text.replace("\n", " ").replace("'", "")
+
     if isinstance(metadata, str):
         metadata = {"pasalTitle": metadata}
+
+    metadata_str = json.dumps(metadata, ensure_ascii=False)
+
+    vector = get_embedding(section_text)
+    vector_str = "[" + ",".join(str(x) for x in vector) + "]"
 
     async with pool.acquire() as conn:
         await conn.execute(
             f"""
-            INSERT INTO "{table_name}" (id, content, metadata, embedding)
-            VALUES ($1, $2, $3::jsonb, $4::vector)
-            ON CONFLICT (id) DO UPDATE
-            SET content = EXCLUDED.content,
-                metadata = EXCLUDED.metadata,
-                embedding = EXCLUDED.embedding;
+            INSERT INTO "{table_name}" (content, metadata, embedding)
+            VALUES ($1, $2::jsonb, $3::vector);
             """,
-            section_id, section_text, json.dumps(metadata), vector_str
+            cleaned_text, metadata_str, vector_str
         )
+
+
 
 
 async def retrieve_documents(user_id: str, query_text: str, top_k: int = 10, filter_metadata: Optional[dict] = None):

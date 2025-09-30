@@ -19,7 +19,6 @@ Peranmu:\nKamu adalah konsultan Human Capital yang ditugaskan untuk menyusun Job
 
     if response and "choices" in response:
         job_performance = response["choices"][0]["message"]["content"].strip()
-        print(job_performance)
         return job_performance
     else:
         print("Tidak ada respons dari AI.")

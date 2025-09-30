@@ -34,11 +34,3 @@ class ApilogyRunTime:
             return response.json()
         except requests.exceptions.RequestException as e:
             return {"error": str(e)}
-
-# my_runtime = ApilogyRunTime()
-
-# if __name__ == "__main__":
-#     system_prompt = "jawab dengan bahasa indonesia"
-#     user_prompt = "halo ayang"
-#     response = my_runtime.generate_response(system_prompt, user_prompt)
-#     print(response)

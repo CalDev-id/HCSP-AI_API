@@ -112,7 +112,6 @@ Posisi - OFFICER DIGITAL PLATFORM STRATEGY
 
     if response and "choices" in response:
         job_authorities = response["choices"][0]["message"]["content"].strip()
-        print(job_authorities)
         return job_authorities
     else:
         print("Tidak ada respons dari AI.")

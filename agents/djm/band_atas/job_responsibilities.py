@@ -18,7 +18,6 @@ Kamu adalah konsultan Human Capital berpengalaman. Tugasmu adalah membantu membu
 
     if response and "choices" in response:
         job_responsibilities = response["choices"][0]["message"]["content"].strip()
-        print(job_responsibilities)
         return job_responsibilities
     else:
         print("Tidak ada respons dari AI.")
