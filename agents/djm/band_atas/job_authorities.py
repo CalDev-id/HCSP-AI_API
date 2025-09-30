@@ -1,11 +1,11 @@
 from typing import List
 from llm.apilogy_runtime import ApilogyRunTime
 
-def ja_agent(nama_posisi: str, band_posisi: str, retrieve_data: List[dict], job_responsibilities: str, mission_statement: str):
+def ja_agent(nama_posisi: str, band_posisi: str, retrieve_data: str, job_responsibilities: str, mission_statement: str):
 
     apilogy_run = ApilogyRunTime()
 
-    context_text = "\n\n".join(retrieve_data) if retrieve_data else "Tidak ada konteks pasal relevan."
+    context_text = retrieve_data if retrieve_data else "Tidak ada konteks pasal relevan."
 
     user_prompt = f"""
     Buatkan Job Authorities untuk posisi berikut berdasarkan Mission Statement dan Job Responsibility:
@@ -20,14 +20,19 @@ def ja_agent(nama_posisi: str, band_posisi: str, retrieve_data: List[dict], job_
 
 
     system_prompt = f"""
-Peranmu:\nKamu adalah asisten AI HC yang membantu menyusun Job Authorities (JA) untuk setiap posisi.\n\nDefinisi JA:\n- JA adalah kewenangan yang diberikan kepada pemangku posisi untuk menjalankan Job Responsibility agar dapat mencapai Mission Statement tanpa bantuan atasan.\n- JA merupakan tingkat keputusan yang bisa dan harus diambil pemangku posisi.\n- Khusus untuk posisi SGM, JA diambil langsung dari kewenangan yang tertulis dalam peraturan yang diambil dari context wewenang yang diberikan user.\n\nAspek Utama JA:\n1. Penentuan prioritas pekerjaan/pembiayaan.\n2. Akses aplikasi.\n3. Sumber data yang digunakan.\n4. Metodologi kerja.\n5. Penentuan target kerja unit dan staf (managerial).\n6. Penilaian performansi/kompetensi staf (managerial).\n7. Pengembangan kompetensi diri dan/atau staf.\n\nInstruksi ReAct:\n1. Reasoning:\n   - Pahami nama posisi yang diberikan.\n   - Identifikasi apakah posisi tersebut managerial atau non-managerial.\n   - Ambil konteks → gunakan context yang diberikan user untuk memahami posisi, unit kerja, dan wewenang posisi tersebut (bukan aktivitas utama melainkan wewenang).\n   - Untuk SGM (Band 1) → WAJIB ambil semua poin utuh dari context setelah kalimat \"(nama posisi) diberi kewenangan antara lain untuk\".\n   - Untuk SM → pahami Mission Statement dan Job Responsibility posisi dari user.\n   - Tentukan aspek JA yang relevan sesuai dengan MS dan JR posisi.\n\n2. Act:\n   - Hasilkan output berupa daftar Job Authorities (JA) dalam bentuk list.\n   - Jika managerial, sertakan kewenangan terkait target staf, penilaian kinerja staf, dan pengembangan staf.\n   - Jika non-managerial, fokus pada kewenangan pekerjaan individu (tanpa poin staf).\n\nContoh:\nInput:\nPosisi: SM SHARED SERVICE PLANNING & GOVERNANCE\n\nReasoning:\n- Posisi SM = managerial (bukan SGM).\n- Harus mencakup aspek JA termasuk target staf, penilaian staf, dan pengembangan staf.\n\nOutput:\n- Menentukan prioritas pembiayaan / pekerjaan\n- Memiliki hak akses atas aplikasi ESS / Enterprise Support System\n- Menetapkan sumber data\n- Menetapkan metodologi kerja\n- Menetapkan sasaran kinerja individu (staf)\n- Menilai kinerja dan kompetensi individu (staf)\n- Merekomendasikan program-program pengembangan staf
+Peranmu: Kamu adalah asisten AI HC yang membantu menyusun Job Authorities (JA) untuk setiap posisi. Jika anda diberikan informasi berupa chunk context maka penting bahwa tidak semua chunk perlu dipakai, cukup gunakan dan pahami chunk yang sumber pasalnya sesuai dengan nama fungsi posisi untuk memahami fungsi, unit kerja, dan aktivitas utamanya. Definisi JA: - JA adalah kewenangan atau hak yang diberikan kepada pemangku posisi untuk menjalankan Job Responsibility agar dapat mencapai Mission Statement tanpa bantuan atasan. - JA merupakan tingkat keputusan yang bisa dan harus diambil pemangku posisi. - Pembuatan Job Authority (JA) dibedakan berdasarkan band posisi, untuk BP1 & BP2, masing-masing terdapat 3 JA. Rumus Aspek Utama JA: - Rumus JA untuk Band 1 dan Band 2: 1. Menentukan proses bisnis yang akan dikembangkan 2. Menetapkan prosedur pengendalian internal lingkup [nama fungsi] 3. Menetapkan program tindak lanjut dan menilai kinerja staf - Rumus JA khusus untuk Band 1 dengan posisi DEPUTY: - Menentukan proses bisnis yang akan dikembangkan - Menetapkan prosedur pengendalian internal lingkup Unit [NAMA DIVISI] - Menetapkan program tindak lanjut dan menilai kinerja staf Instruksi ReAct: 1. Reasoning: - Pahami BAND POSISI yang diberikan. - Ambil konteks → gunakan context untuk memahami posisi, unit kerja, dan wewenang posisi tersebut. - Untuk setiap posisi pahami mission statement dan job responsibility yang diberikan user terkait posisi tersebut, tentukan aspek JA yang relevan dari daftar di atas dan pastikan sesuai dengan mission statement dan job responsibility posisi dari user. 2. Act: - Hasilkan output berupa daftar Job Authorities (JA) dalam bentuk poin-poin yang jelas, sesuai rumus, dalam list dan tidak dibold. - Jika posisi managerial, sertakan poin terkait penetapan target staf, penilaian kinerja staf, dan pengembangan staf. - Jika posisi non-managerial, fokus pada kewenangan yang mendukung pekerjaan individu (tanpa poin tentang staf). ------------------------------------------------------------ IKUTI CONTOH BERIKUT untuk LLM berpikir: Yang ditampilkan hanya output saja! - Input: VP HCSM -> Reasoning: - Posisi VP (Vice President) dalam struktur tabel berada dalam posisi Band 1. - Pahami Mission Statement dan Job responsibility yang diberikan user. - WAJIB memuat 3 poin template dan HANYA mengisi bagian nama fungsinya saja, selain itu sama persis JANGAN ADA YANG DIUBAH. -> Output (Job Authorities): - Menentukan proses bisnis yang akan dikembangkan - Menetapkan prosedur pengendalian internal lingkup [Subdit HC Strategic Management] - Menetapkan program tindak lanjut dan menilai kinerja staf ------------------------------------------------------------
 """
 
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
     if response and "choices" in response:
-        job_authorities = response["choices"][0]["message"]["content"].strip()
-        return job_authorities
+        job_responsibilities = response["choices"][0]["message"]["content"].strip()
+        
+        # Bersihkan teks
+        job_responsibilities = job_responsibilities.replace("- ", "• ")
+        job_responsibilities = job_responsibilities.replace("'", "").replace("[", "").replace("]", "")
+        
+        return job_responsibilities
     else:
         print("Tidak ada respons dari AI.")
         return ""
