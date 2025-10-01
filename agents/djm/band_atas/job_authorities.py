@@ -26,13 +26,13 @@ Peranmu: Kamu adalah asisten AI HC yang membantu menyusun Job Authorities (JA) u
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
     if response and "choices" in response:
-        job_responsibilities = response["choices"][0]["message"]["content"].strip()
+        job_authorities = response["choices"][0]["message"]["content"].strip()
         
         # Bersihkan teks
-        job_responsibilities = job_responsibilities.replace("- ", "• ")
-        job_responsibilities = job_responsibilities.replace("'", "").replace("[", "").replace("]", "")
+        job_authorities = job_authorities.replace("- ", "• ")
+        job_authorities = job_authorities.replace("'", "").replace("[", "").replace("]", "")
         
-        return job_responsibilities
+        return job_authorities
     else:
         print("Tidak ada respons dari AI.")
         return ""

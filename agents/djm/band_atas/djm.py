@@ -31,19 +31,19 @@ import json
 async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: UploadFile):
 
     try:
-        await create_user_table(user_id)
-        ocr_result = await ocr_pdf_telkom(pr_file)
-        # ocr_result = await ocr_pdf_apilogy(pr_file)
+        # await create_user_table(user_id)
+        # ocr_result = await ocr_pdf_telkom(pr_file)
+        # # ocr_result = await ocr_pdf_apilogy(pr_file)
 
-        combined_text = combine_extracted_text(ocr_result)
-        pasal_sections = process_pasal_sections(combined_text)
+        # combined_text = combine_extracted_text(ocr_result)
+        # pasal_sections = process_pasal_sections(combined_text)
 
-        for section in pasal_sections:
-            await add_section(
-                user_id,
-                section.get("chunkText", ""),
-                section.get("pasalTitle", "unknown")
-            )
+        # for section in pasal_sections:
+        #     await add_section(
+        #         user_id,
+        #         section.get("chunkText", ""),
+        #         section.get("pasalTitle", "unknown")
+        #     )
         # await pasal_corrector(conn=postgredb_apilogy.pool, user_id=user_id)
         xlsx_data = await extract_xlsx(template_file)
         await store_excel_in_db(user_id, xlsx_data)
@@ -85,7 +85,7 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
             djm_results.extend(await process_band_1_2(conn, table_temp, rows_band_1_2, user_id))
 
             # proses band 3
-            # djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
+            djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
 
         return JSONResponse(content={"results": djm_results}, status_code=200)
 
@@ -109,8 +109,8 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
                 meta = {}
         metadata_dict[str(r["id"])] = meta
 
-    print(f"Metadata dict: {metadata_dict}")
-    print ("----------------------------------------------------------------------")
+    # print(f"Metadata dict: {metadata_dict}")
+    # print ("----------------------------------------------------------------------")
 
     results = []
     for row in rows_band_1_2[:3]:
@@ -123,8 +123,8 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
         else:
             id_data_pr = cari_database(nama_posisi, metadata_dict)
             id_data_pr = int(id_data_pr)
-            print(f"ID data_pr ditemukan: {id_data_pr} untuk posisi {nama_posisi}")
-            print("----------------------------------------------------------------------")
+            # print(f"ID data_pr ditemukan: {id_data_pr} untuk posisi {nama_posisi}")
+            # print("----------------------------------------------------------------------")
 
             if id_data_pr == 0:
                 retrieve = await retrieve_documents(user_id, nama_posisi)
@@ -133,8 +133,8 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
                     f'SELECT id, content, metadata FROM data_pr_{user_id} WHERE id = $1',
                     id_data_pr
                 )
-                print(f"Row ditemukan: {retrieve_row} untuk posisi {nama_posisi}")
-                print("----------------------------------------------------------------------")
+                # print(f"Row ditemukan: {retrieve_row} untuk posisi {nama_posisi}")
+                # print("----------------------------------------------------------------------")
                 if retrieve_row:
                     retrieve = retrieve_row["content"]
                 else:
@@ -167,7 +167,7 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
 # ============ FUNGSI UNTUK BAND 3 ============
 async def process_band_3(conn, table_temp, rows_band_3, user_id):
     results = []
-    for row in rows_band_3[:2]:
+    for row in rows_band_3[:7]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]
@@ -176,29 +176,58 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
         if not nama_posisi:
             mission_statement = job_responsibilities = job_performance = job_authorities = "Nama posisi kosong"
         else:
+            await conn.execute(f"""
+                CREATE TABLE IF NOT EXISTS jr_kepake_{user_id} (
+                    id INTEGER PRIMARY KEY,
+                    atasan TEXT,
+                    job_responsibilities TEXT
+                );
+            """)
             retrieve_data = await retrieve_position(user_id, atasan)
 
-            mission_statement = ms_agent3(nama_posisi, band_posisi, retrieve_data)
-            job_responsibilities = jr_agent3(nama_posisi, band_posisi, retrieve_data)
+            jr_kepake_rows = await conn.fetch(
+                f'SELECT job_responsibilities FROM jr_kepake_{user_id} WHERE atasan = $1',
+                atasan
+            )
+
+            jr_kepake = [row["job_responsibilities"] for row in jr_kepake_rows] if jr_kepake_rows else None
+
+
+            mission_statement = ms_agent3(nama_posisi)
+            job_responsibilities = jr_agent3(nama_posisi, band_posisi, retrieve_data, jr_kepake)
             job_performance = jp_agent3(nama_posisi, band_posisi, job_responsibilities)
             job_authorities = ja_agent3(nama_posisi, band_posisi, retrieve_data, job_responsibilities, mission_statement)
+
+            await conn.execute(f"""
+                INSERT INTO jr_kepake_{user_id} (id, atasan, job_responsibilities)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (id) DO UPDATE
+                SET atasan = EXCLUDED.atasan,
+                    job_responsibilities = EXCLUDED.job_responsibilities
+            """, job_id, atasan, job_responsibilities)
 
         result = {
             "jobId": job_id,
             "nama_posisi": nama_posisi,
             "mission_statement": mission_statement,
             "job_responsibilities": job_responsibilities,
+            "jr_kepake": jr_kepake,
             "job_performance": job_performance,
             "job_authorities": job_authorities,
         }
-        await conn.execute(f"""
-            INSERT INTO "{table_temp}" (jobId, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
-            VALUES ($1, $2, $3, $4, $5, $6)
-        """, job_id, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
+        # await conn.execute(f"""
+        #     INSERT INTO "{table_temp}" 
+        #     (jobId, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
+        #     VALUES ($1, $2, $3, $4, $5, $6)
+        # """, job_id, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
 
         results.append(result)
 
+        #drop tabel jr_kepake setelah selesai
+    # await conn.execute(f'DROP TABLE IF EXISTS jr_kepake_{user_id}')
+
     return results
+
 
 def cari_database(nama_posisi, metadata_dict):
     apilogy_run = ApilogyRunTime()
@@ -232,7 +261,7 @@ OUTPUT : 5
 
     if response and "choices" in response:
         id_result = response["choices"][0]["message"]["content"].strip()
-        print(f"Posisi cocok: {id_result}")
+        # print(f"Posisi cocok: {id_result}")
         return id_result
     else:
         print("Tidak ada respons dari AI.")

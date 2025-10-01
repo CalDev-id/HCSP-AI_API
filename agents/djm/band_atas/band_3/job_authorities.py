@@ -29,6 +29,11 @@ Peranmu:\nKamu adalah asisten AI HC yang membantu menyusun Job Authorities (JA) 
 
     if response and "choices" in response:
         job_authorities = response["choices"][0]["message"]["content"].strip()
+        
+        # Bersihkan teks
+        job_authorities = job_authorities.replace("- ", "• ")
+        job_authorities = job_authorities.replace("'", "").replace("[", "").replace("]", "")
+        
         return job_authorities
     else:
         print("Tidak ada respons dari AI.")
