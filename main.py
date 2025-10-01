@@ -58,9 +58,10 @@ async def create_djm_bawah(request: DJMRequest):
 async def chat_endpoint(
     session_id: str = Form(...),
     message: str = Form(...),
-    file: Optional[UploadFile] = None
+    # file: Optional[UploadFile] = None
+    files: Optional[List[UploadFile]] = File(default=None)
 ):
-    response = await chat_agent(session_id, message, file)
+    response = await chat_agent(session_id, message, files)
     return response
 
 @app.post("/retrieve_position")

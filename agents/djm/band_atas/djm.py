@@ -31,20 +31,20 @@ import json
 async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: UploadFile):
 
     try:
-        # await create_user_table(user_id)
-        # ocr_result = await ocr_pdf_telkom(pr_file)
-        # # ocr_result = await ocr_pdf_apilogy(pr_file)
+        await create_user_table(user_id)
+        ocr_result = await ocr_pdf_telkom(pr_file)
+        # ocr_result = await ocr_pdf_apilogy(pr_file)
 
-        # combined_text = combine_extracted_text(ocr_result)
-        # pasal_sections = process_pasal_sections(combined_text)
+        combined_text = combine_extracted_text(ocr_result)
+        pasal_sections = process_pasal_sections(combined_text)
 
-        # for section in pasal_sections:
-        #     await add_section(
-        #         user_id,
-        #         section.get("chunkText", ""),
-        #         section.get("pasalTitle", "unknown")
-        #     )
-        # await pasal_corrector(conn=postgredb_apilogy.pool, user_id=user_id)
+        for section in pasal_sections:
+            await add_section(
+                user_id,
+                section.get("chunkText", ""),
+                section.get("pasalTitle", "unknown")
+            )
+        await pasal_corrector(conn=postgredb_apilogy.pool, user_id=user_id)
         xlsx_data = await extract_xlsx(template_file)
         await store_excel_in_db(user_id, xlsx_data)
 
@@ -113,7 +113,7 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
     # print ("----------------------------------------------------------------------")
 
     results = []
-    for row in rows_band_1_2[:3]:
+    for row in rows_band_1_2[:2]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]
@@ -167,7 +167,7 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
 # ============ FUNGSI UNTUK BAND 3 ============
 async def process_band_3(conn, table_temp, rows_band_3, user_id):
     results = []
-    for row in rows_band_3[:7]:
+    for row in rows_band_3[:3]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]
@@ -179,14 +179,14 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             await conn.execute(f"""
                 CREATE TABLE IF NOT EXISTS jr_kepake_{user_id} (
                     id INTEGER PRIMARY KEY,
-                    atasan TEXT,
+                    atasan TEXT UNIQUE,
                     job_responsibilities TEXT
                 );
             """)
             retrieve_data = await retrieve_position(user_id, atasan)
 
             jr_kepake_rows = await conn.fetch(
-                f'SELECT job_responsibilities FROM jr_kepake_{user_id} WHERE atasan = $1',
+                f'SELECT job_responsibilities FROM jr_kepake_{user_id} WHERE atasan ILIKE $1',
                 atasan
             )
 
@@ -201,10 +201,10 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             await conn.execute(f"""
                 INSERT INTO jr_kepake_{user_id} (id, atasan, job_responsibilities)
                 VALUES ($1, $2, $3)
-                ON CONFLICT (id) DO UPDATE
-                SET atasan = EXCLUDED.atasan,
-                    job_responsibilities = EXCLUDED.job_responsibilities
+                ON CONFLICT (atasan) DO UPDATE
+                SET job_responsibilities = jr_kepake_{user_id}.job_responsibilities || E'\n' || EXCLUDED.job_responsibilities
             """, job_id, atasan, job_responsibilities)
+
 
         result = {
             "jobId": job_id,
@@ -215,6 +215,7 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             "job_performance": job_performance,
             "job_authorities": job_authorities,
         }
+        
         # await conn.execute(f"""
         #     INSERT INTO "{table_temp}" 
         #     (jobId, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
@@ -222,11 +223,10 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
         # """, job_id, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
 
         results.append(result)
-
-        #drop tabel jr_kepake setelah selesai
-    # await conn.execute(f'DROP TABLE IF EXISTS jr_kepake_{user_id}')
-
+        
+        # await conn.execute(f'DROP TABLE IF EXISTS jr_kepake_{user_id}')
     return results
+
 
 
 def cari_database(nama_posisi, metadata_dict):

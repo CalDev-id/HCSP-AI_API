@@ -9,7 +9,7 @@ import os
 import requests
 from main import handle_create_djm
 from fastapi.responses import JSONResponse
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 # --- SESSION MEMORY ---
 SESSIONS: Dict[str, Dict] = {}  
@@ -88,12 +88,23 @@ def get_agent(memory: ConversationBufferMemory):
     return agent
 
 # AGENT DILUAR AGENT CHAT UTAMA HEHE T_T
-async def execute_create_djm(file: Optional[UploadFile]):
-    """Eksekusi action create_djm dengan file."""
-    if not file:
+async def execute_create_djm(user_id: str, files: Optional[List[UploadFile]]):
+    if not files or len(files) == 0:
         return {"error": "Agent ingin membuat DJM, tapi tidak ada file diupload."}
 
-    djm_result = await handle_create_djm(file)
+    # mapping berdasarkan ekstensi
+    pr_file = next((f for f in files if f.filename.lower().endswith(".pdf")), None)
+    template_file = next((f for f in files if f.filename.lower().endswith(".xlsx")), None)
+
+    if not pr_file or not template_file:
+        return {
+            "error": "Agent ingin membuat DJM, tapi file yang diperlukan tidak lengkap.",
+            "needed": {"pr_file": ".pdf", "template_file": ".xlsx"},
+            "received": [f.filename for f in files],
+        }
+
+    # jalankan handler
+    djm_result = await handle_create_djm(user_id, pr_file, template_file)
 
     if isinstance(djm_result, JSONResponse):
         body = djm_result.body.decode("utf-8")
@@ -108,14 +119,15 @@ async def execute_create_djm(file: Optional[UploadFile]):
     return str(djm_result)
 
 
-async def chat_agent(session_id: str, message: str, file: Optional[UploadFile] = None):
+async def chat_agent(session_id: str, message: str, files: Optional[List[UploadFile]] = None):
     memory = get_session_memory(session_id)
     agent = get_agent(memory)
 
     result = agent.run(message)
 
     ACTION_HANDLERS = {
-        "create_djm": lambda: execute_create_djm(file),
+        "create_djm": lambda: execute_create_djm(session_id, files),
+        # action lain bisa ditambahkan di sini
     }
 
     action = result.strip()
