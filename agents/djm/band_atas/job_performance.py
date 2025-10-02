@@ -15,14 +15,13 @@ Peranmu: Konsultan HC penyusun JPI dari JR. Tujuan: Ubah setiap JR jadi JPI. Atu
 
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
-    if response and "choices" in response:
-        job_performance = response["choices"][0]["message"]["content"].strip()
+    if response:
+        job_performance = response.strip()
         
-        # Bersihkan teks
         job_performance = job_performance.replace("- ", "• ")
         job_performance = job_performance.replace("'", "").replace("[", "").replace("]", "")
-
+        
         return job_performance
     else:
         print("Tidak ada respons dari AI.")
-        return ""
+        return "Tidak ada respons dari AI."

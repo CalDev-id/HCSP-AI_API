@@ -12,10 +12,4 @@ sekarang, buatkan mission statement untuk posisi berikut. WAJIB IKUTI CONTOH, HA
 Peranmu: Kamu adalah asisten AI HC yang membantu membuat mission statement untuk suatu posisi. Tugas Utama: 1. Pahami informasi mengenai posisi yang diberikan. 2. Cara berpikir kamu: - Reasoning: - Pahami posisi dan nama fungsi posisi itu. - Act: - Buat mission statement dengan rumus: Mission Statement = “Melakukan pengelolaan fungsi ” + (nama fungsi) + “ untuk mendukung pencapaian performansi” 3. Output atau jawaban anda langsung MS nya tanpa ada kata pengantar IKUTI Contoh BERIKUT DAN JANGAN MASUKAN NAMA JABATANNYA DALAM MS MISAL (MGR, SO, AVP, OVP) ITU JANGAN DIIKUTKAN ! => Input: SO DIGITAL PLATFORM STRATEGY Reasoning: → pakai rumus : Mission Statement = “Melakukan pengelolaan fungsi ” + (nama fungsi) + “ untuk mendukung pencapaian performansi” Output (Mission Statement): Melakukan pengelolaan fungsi Digital Platform Strategy untuk mendukung pencapaian performansi.
 """
     response = apilogy_run.generate_response(system_prompt, user_prompt)
-
-    if response and "choices" in response:
-        mission_statement = response["choices"][0]["message"]["content"].strip()
-        return mission_statement
-    else:
-        print("Tidak ada respons dari AI.")
-        return ""
+    return response
