@@ -90,10 +90,4 @@ Gunakan data dari vector database berikut dari dokumen pasal relevan:
 
 """
     response = apilogy_run.generate_response(system_prompt, user_prompt)
-
-    if response and "choices" in response:
-        mission_statement = response["choices"][0]["message"]["content"].strip()
-        return mission_statement
-    else:
-        print("Tidak ada respons dari AI.")
-        return ""
+    return response

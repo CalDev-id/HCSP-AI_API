@@ -44,7 +44,7 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
                 section.get("chunkText", ""),
                 section.get("pasalTitle", "unknown")
             )
-        await pasal_corrector(conn=postgredb_apilogy.pool, user_id=user_id)
+        # await pasal_corrector(conn=postgredb_apilogy.pool, user_id=user_id)
         xlsx_data = await extract_xlsx(template_file)
         await store_excel_in_db(user_id, xlsx_data)
 
@@ -85,7 +85,7 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
             djm_results.extend(await process_band_1_2(conn, table_temp, rows_band_1_2, user_id))
 
             # proses band 3
-            djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
+            # djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
 
         return JSONResponse(content={"results": djm_results}, status_code=200)
 
@@ -259,14 +259,21 @@ OUTPUT : 5
 
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
-    if response and "choices" in response:
-        id_result = response["choices"][0]["message"]["content"].strip()
-        # print(f"Posisi cocok: {id_result}")
-        return id_result
+    # if response and "choices" in response:
+    #     id_result = response["choices"][0]["message"]["content"].strip()
+    #     # print(f"Posisi cocok: {id_result}")
+    #     return id_result
+    # else:
+    #     print("Tidak ada respons dari AI.")
+    #     return "0"
+    
+    # response = apilogy_run.generate_response(system_prompt, user_prompt)
+    if response:
+        response = response.strip()
+        return response
     else:
         print("Tidak ada respons dari AI.")
-        return "0"
-    
+        return "Tidak ada respons dari AI."
 
 
 async def pasal_corrector(conn, user_id: str):
