@@ -13,13 +13,13 @@ def jr_agent(nama_posisi: str, band_posisi: str, retrieve_data: List[dict], jr_k
       context_parts = []
       for record in retrieve_data:
           job_responsibilities = record.get("job_responsibilities", "")
-          context_parts.append(f"Job Responsibilities: {job_responsibilities}\n\n")
+          context_parts.append(f"{job_responsibilities}\n\n")
         
       context_text = "\n\n".join(context_parts)
 
     if jr_kepake:
         jr_kepake_text = "\n\n".join(
-            f"Job Responsibilities (from context_kepake): {jr}" for jr in jr_kepake
+            f"{jr}" for jr in jr_kepake
         )
     else:
         jr_kepake_text = ""
@@ -38,17 +38,16 @@ Tugasmu adalah membuat Job Responsibilities (JR). Ikuti langkah berikut: 1) Rumu
 """
     response = apilogy_run.generate_response(system_prompt, user_prompt)
     
-    if response and "choices" in response:
-        job_responsibilities = response["choices"][0]["message"]["content"].strip()
-        
-        # Bersihkan teks
+    if response:
+        job_responsibilities = response.strip()
+
         job_responsibilities = job_responsibilities.replace("- ", "• ")
         job_responsibilities = job_responsibilities.replace("'", "").replace("[", "").replace("]", "")
-        
+
         return job_responsibilities
     else:
         print("Tidak ada respons dari AI.")
-        return ""
+        return "Tidak ada respons dari AI."
 
 def build_final_text(jr_atasan: str, jr_last: str) -> str:
     final_text = jr_atasan

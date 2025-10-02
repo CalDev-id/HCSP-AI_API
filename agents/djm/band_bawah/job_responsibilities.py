@@ -98,9 +98,13 @@ gunakan context database ini :
 """
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
-    if response and "choices" in response:
-        job_responsibilities = response["choices"][0]["message"]["content"].strip()
+    if response:
+        job_responsibilities = response.strip()
+        
+        job_responsibilities = job_responsibilities.replace("- ", "• ")
+        job_responsibilities = job_responsibilities.replace("'", "").replace("[", "").replace("]", "")
+        
         return job_responsibilities
     else:
         print("Tidak ada respons dari AI.")
-        return ""
+        return "Tidak ada respons dari AI."

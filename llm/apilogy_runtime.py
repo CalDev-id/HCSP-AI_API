@@ -13,6 +13,7 @@ class ApilogyRunTime:
 
     def generate_response(self, system_prompt: str, user_prompt: str):
         payload = {
+            # "model": "telkom-ai-reasoning",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -31,6 +32,15 @@ class ApilogyRunTime:
         try:
             response = requests.post(self.url, headers=headers, json=payload, timeout=100)
             response.raise_for_status()
-            return response.json()
+            response = response.json()
+
+            if response and "choices" in response:
+                response = response["choices"][0]["message"]["content"].strip()
+                return response
+            else:
+                print("Tidak ada respons dari AI.")
+                return ""
+
         except requests.exceptions.RequestException as e:
-            return {"error": str(e)}
+            print(f"Error: {e}")
+            return ""
