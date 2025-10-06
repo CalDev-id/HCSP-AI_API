@@ -28,7 +28,6 @@ async def call_ocr_api(pdf_bytes: bytes, filename: str) -> Dict:
 
 
 async def ocr_pdf_telkom(upload_file) -> List[Dict]:
-    # Baca PDF as bytes
     pdf_bytes = await upload_file.read()
     pdf_reader = PdfReader(BytesIO(pdf_bytes))
     total_pages = len(pdf_reader.pages)
@@ -41,22 +40,19 @@ async def ocr_pdf_telkom(upload_file) -> List[Dict]:
         end = min(start + batch_size, total_pages)
         batch_num += 1
 
-        # Buat PDF baru berisi subset halaman
         writer = PdfWriter()
         for i in range(start, end):
-            writer.add_page(pdf_reader.pages[i])  # di pypdf aman
+            writer.add_page(pdf_reader.pages[i])
 
         output_stream = BytesIO()
         writer.write(output_stream)
         output_stream.seek(0)
 
-        # Panggil OCR API untuk batch ini
         result = await call_ocr_api(output_stream.read(), f"{upload_file.filename}_part{batch_num}.pdf")
 
-        # Simpan hasil dengan nomor halaman global
         for page_offset, (page_num, content) in enumerate(result.items(), start=1):
             all_results.append({
-                "page": start + page_offset,   # hitung halaman sebenarnya
+                "page": start + page_offset,
                 "content": content.get("data", "")
             })
 

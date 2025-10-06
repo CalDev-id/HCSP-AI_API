@@ -264,15 +264,6 @@ OUTPUT : 5
 
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
-    # if response and "choices" in response:
-    #     id_result = response["choices"][0]["message"]["content"].strip()
-    #     # print(f"Posisi cocok: {id_result}")
-    #     return id_result
-    # else:
-    #     print("Tidak ada respons dari AI.")
-    #     return "0"
-    
-    # response = apilogy_run.generate_response(system_prompt, user_prompt)
     if response:
         response = response.strip()
         return response
