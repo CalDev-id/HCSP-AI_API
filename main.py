@@ -15,6 +15,7 @@ from agents.djm.band_atas.mission_statement import ms_agent
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await postgredb_apilogy.init_db_pool()
+    await postgredb_apilogy.ensure_chat_table_exists()
     print("Database pool initialized.")
     yield
     if postgredb_apilogy.pool:
@@ -58,7 +59,6 @@ async def create_djm_bawah(request: DJMRequest):
 async def chat_endpoint(
     session_id: str = Form(...),
     message: str = Form(...),
-    # file: Optional[UploadFile] = None
     files: Optional[List[UploadFile]] = File(default=None)
 ):
     response = await chat_agent(session_id, message, files)
