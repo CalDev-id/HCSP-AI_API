@@ -10,14 +10,17 @@ import requests
 from main import handle_create_djm
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, List
+from utils import postgredb_apilogy
 
 # --- SESSION MEMORY ---
 SESSIONS: Dict[str, Dict] = {}  
 
-def get_session_memory(session_id: str) -> ConversationBufferMemory:
-    if session_id not in SESSIONS:
-        SESSIONS[session_id] = {"memory": ConversationBufferMemory(memory_key="chat_history")}
-    return SESSIONS[session_id]["memory"]
+from agents.chat.postgres_memory import PostgresConversationMemory
+
+async def get_session_memory(session_id: str) -> PostgresConversationMemory:
+    memory = PostgresConversationMemory(session_id=session_id, window=20)
+    await memory.load_memory_variables({})
+    return memory
 
 # --- TOOLS ---
 PROMOTION_MATCH_URL = "http://127.0.0.1:8000/promotion_matching"
@@ -120,14 +123,17 @@ async def execute_create_djm(user_id: str, files: Optional[List[UploadFile]]):
 
 
 async def chat_agent(session_id: str, message: str, files: Optional[List[UploadFile]] = None):
-    memory = get_session_memory(session_id)
+    memory = await get_session_memory(session_id)
     agent = get_agent(memory)
 
-    result = agent.run(message)
+    result = await agent.arun(message)
+
+    # simpan hasil percakapan
+    await postgredb_apilogy.insert_chat_message(session_id, "user", message)
+    await postgredb_apilogy.insert_chat_message(session_id, "assistant", result)
 
     ACTION_HANDLERS = {
         "create_djm": lambda: execute_create_djm(session_id, files),
-        # action lain bisa ditambahkan di sini
     }
 
     action = result.strip()

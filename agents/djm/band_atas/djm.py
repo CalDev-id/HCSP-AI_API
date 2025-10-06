@@ -85,7 +85,7 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
             djm_results.extend(await process_band_1_2(conn, table_temp, rows_band_1_2, user_id))
 
             # proses band 3
-            # djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
+            djm_results.extend(await process_band_3(conn, table_temp, rows_band_3, user_id))
 
         return JSONResponse(content={"results": djm_results}, status_code=200)
 
@@ -113,7 +113,7 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
     # print ("----------------------------------------------------------------------")
 
     results = []
-    for row in rows_band_1_2[:2]:
+    for row in rows_band_1_2[:4]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]
@@ -152,6 +152,8 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
                 "job_responsibilities": job_responsibilities,
                 "job_performance": job_performance,
                 "job_authorities": job_authorities,
+                "id_data_pr": id_data_pr,
+                "retrieve": retrieve
             }
 
             await conn.execute(f"""
@@ -167,7 +169,14 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
 # ============ FUNGSI UNTUK BAND 3 ============
 async def process_band_3(conn, table_temp, rows_band_3, user_id):
     results = []
-    for row in rows_band_3[:3]:
+    await conn.execute(f"""
+        CREATE TABLE IF NOT EXISTS jr_kepake_{user_id} (
+            id INTEGER PRIMARY KEY,
+            atasan TEXT UNIQUE,
+            job_responsibilities TEXT
+        );
+    """)
+    for row in rows_band_3[:8]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]
@@ -176,13 +185,6 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
         if not nama_posisi:
             mission_statement = job_responsibilities = job_performance = job_authorities = "Nama posisi kosong"
         else:
-            await conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS jr_kepake_{user_id} (
-                    id INTEGER PRIMARY KEY,
-                    atasan TEXT UNIQUE,
-                    job_responsibilities TEXT
-                );
-            """)
             retrieve_data = await retrieve_position(user_id, atasan)
 
             jr_kepake_rows = await conn.fetch(
@@ -211,9 +213,12 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             "nama_posisi": nama_posisi,
             "mission_statement": mission_statement,
             "job_responsibilities": job_responsibilities,
-            "jr_kepake": jr_kepake,
             "job_performance": job_performance,
             "job_authorities": job_authorities,
+            "================": "================",
+            "atasan": atasan,
+            "retrieve_data": retrieve_data,
+            "jr_kepake": jr_kepake,
         }
         
         # await conn.execute(f"""
@@ -259,15 +264,6 @@ OUTPUT : 5
 
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
-    # if response and "choices" in response:
-    #     id_result = response["choices"][0]["message"]["content"].strip()
-    #     # print(f"Posisi cocok: {id_result}")
-    #     return id_result
-    # else:
-    #     print("Tidak ada respons dari AI.")
-    #     return "0"
-    
-    # response = apilogy_run.generate_response(system_prompt, user_prompt)
     if response:
         response = response.strip()
         return response

@@ -2,6 +2,7 @@ import asyncpg
 from typing import Optional
 from utils.embedding import get_embedding
 import json
+from typing import List, Dict, Any
 
 DB_URL = "postgresql://cal:pass@localhost:5432/cal"
 pool: Optional[asyncpg.pool.Pool] = None
@@ -174,3 +175,46 @@ async def retrieve_position(user_id: str, position_name: str):
         )
         return [dict(record) for record in djm_atas]  # ini aman, djm_atas pasti iterable
 
+
+
+#chat
+async def ensure_chat_table_exists():
+    """Buat table chat_history kalau belum ada."""
+    global pool
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS chat_history (
+                id SERIAL PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        """)
+
+
+async def insert_chat_message(session_id: str, role: str, message: str):
+    """Simpan pesan user/assistant ke PostgreSQL."""
+    global pool
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO chat_history (session_id, role, message) VALUES ($1, $2, $3)",
+            session_id, role, message
+        )
+
+
+async def fetch_chat_history(session_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+    """Ambil N chat terakhir berdasarkan session_id (urut awal → akhir)."""
+    global pool
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT role, message, created_at
+            FROM chat_history
+            WHERE session_id = $1
+            ORDER BY created_at DESC
+            LIMIT $2
+            """,
+            session_id, limit
+        )
+        return list(reversed([dict(r) for r in rows]))
