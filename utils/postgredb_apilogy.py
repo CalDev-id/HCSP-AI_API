@@ -97,7 +97,7 @@ async def retrieve_position_bawah(user_id: str, position_name: str):
         djm_atas = await conn.fetch(
             f'''
             SELECT * 
-            FROM "djm_atas_{user_id}" 
+            FROM "djm_verified_{user_id}" 
             WHERE LOWER(nama_posisi) = LOWER($1)
             ''',
             position_name
@@ -110,7 +110,7 @@ async def retrieve_position(user_id: str, position_name: str):
         djm_atas = await conn.fetch(
             f'''
             SELECT * 
-            FROM "djm_12_temp_{user_id}" 
+            FROM "djm_temp_{user_id}" 
             WHERE LOWER(nama_posisi) = LOWER($1)
             ''',
             position_name

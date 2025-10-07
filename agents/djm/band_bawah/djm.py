@@ -75,7 +75,7 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
 
 async def store_multiple_djm_in_db(user_id: str, data: List[DJMData]):
     pool = postgredb_apilogy.pool
-    table_name = f"djm_atas_{user_id}"
+    table_name = f"djm_verified{user_id}"
 
     async with pool.acquire() as conn:
         # Drop & create sekali saja
