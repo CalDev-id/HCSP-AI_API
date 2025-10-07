@@ -8,6 +8,7 @@ from utils.postgredb_apilogy import (
 
 async def process_band_3(conn, table_temp, rows_band_3, user_id):
     results = []
+    await conn.execute(f'DROP TABLE IF EXISTS jr_kepake_{user_id}')
     await conn.execute(f"""
         CREATE TABLE IF NOT EXISTS jr_kepake_{user_id} (
             id INTEGER PRIMARY KEY,
@@ -60,13 +61,12 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             "jr_kepake": jr_kepake,
         }
         
-        # await conn.execute(f"""
-        #     INSERT INTO "{table_temp}" 
-        #     (jobId, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
-        #     VALUES ($1, $2, $3, $4, $5, $6)
-        # """, job_id, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
+        await conn.execute(f"""
+            INSERT INTO "{table_temp}" 
+            (jobId, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        """, job_id, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
 
         results.append(result)
         
-        # await conn.execute(f'DROP TABLE IF EXISTS jr_kepake_{user_id}')
     return results

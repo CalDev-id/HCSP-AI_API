@@ -85,12 +85,6 @@ async def retrieve_documents(user_id: str, query_text: str, top_k: int = 10, fil
 
     return combined_text
 
-async def drop_user_table(user_id: str):
-    global pool
-    table_name = f"data_pr_{user_id}"
-    async with pool.acquire() as conn:
-        await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
-
 async def retrieve_position_bawah(user_id: str, position_name: str):
     global pool
     async with pool.acquire() as conn:

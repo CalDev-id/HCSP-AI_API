@@ -50,13 +50,3 @@ async def store_excel_in_db(user_id: str, data: list):
             )
 
     return {"status": "success", "inserted": len(data), "table": table_name}
-
-
-async def drop_excel_table(user_id: str):
-    pool = postgredb_apilogy.pool
-    table_name = f"excel_djm_{user_id}"
-
-    async with pool.acquire() as conn:
-        await conn.execute(f'DROP TABLE IF EXISTS "{table_name}"')
-
-    return {"status": "success", "message": f"Table {table_name} dropped"}
