@@ -15,7 +15,7 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             job_responsibilities TEXT
         );
     """)
-    for row in rows_band_3[:8]:
+    for row in rows_band_3[:3]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]

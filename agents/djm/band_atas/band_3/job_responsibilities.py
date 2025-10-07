@@ -25,8 +25,6 @@ def jr_agent(nama_posisi: str, band_posisi: str, retrieve_data: List[dict], jr_k
         jr_kepake_text = ""
 
     final_text = build_final_text(context_text, jr_kepake_text)
-    print("FINAL TEXT JR AGENT:", final_text)
-    print("============================================================================================================")
     jr_points_count = count_jr_points(context_text)
     user_prompt = f"""
 

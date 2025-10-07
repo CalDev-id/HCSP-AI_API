@@ -165,10 +165,23 @@ async def fetch_chat_history(session_id: str, limit: int = 20) -> List[Dict[str,
 def cari_database(nama_posisi, metadata_dict):
     apilogy_run = ApilogyRunTime()
 
-    metadata_text = "\n".join(
-        [f"Sumber ID : {mid} || Sumber pasal : {meta.get('pasalTitle','') if isinstance(meta, dict) else str(meta)}"
-         for mid, meta in metadata_dict.items()]
-    )
+    def ambil_ringkasan_pasal(title):
+        if not title:
+            return ""
+
+        title = str(title).replace('"', '').replace("'", "").strip()
+
+        if "." in title:
+            first_sentence = title.split(".")[0].strip()
+        else:
+            first_sentence = " ".join(title.split()[:20]).strip()
+
+        return first_sentence
+
+    metadata_text = "\n".join([
+        f"Sumber ID : {mid} || Sumber pasal : {ambil_ringkasan_pasal(meta.get('pasalTitle', '')) if isinstance(meta, dict) else ambil_ringkasan_pasal(meta)}"
+        for mid, meta in metadata_dict.items()
+    ])
 
     user_prompt = f"""
 Sekarang cari yang benar dan ambilah satu id chunk pasal yang memuat nama posisi 
