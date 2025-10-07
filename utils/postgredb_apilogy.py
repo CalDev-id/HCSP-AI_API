@@ -85,19 +85,13 @@ async def retrieve_documents(user_id: str, query_text: str, top_k: int = 10, fil
 
     return combined_text
 
-async def drop_user_table(user_id: str):
-    global pool
-    table_name = f"data_pr_{user_id}"
-    async with pool.acquire() as conn:
-        await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
-
 async def retrieve_position_bawah(user_id: str, position_name: str):
     global pool
     async with pool.acquire() as conn:
         djm_atas = await conn.fetch(
             f'''
             SELECT * 
-            FROM "djm_atas_{user_id}" 
+            FROM "djm_verified_{user_id}" 
             WHERE LOWER(nama_posisi) = LOWER($1)
             ''',
             position_name
@@ -110,7 +104,7 @@ async def retrieve_position(user_id: str, position_name: str):
         djm_atas = await conn.fetch(
             f'''
             SELECT * 
-            FROM "djm_12_temp_{user_id}" 
+            FROM "djm_temp_{user_id}" 
             WHERE LOWER(nama_posisi) = LOWER($1)
             ''',
             position_name
@@ -165,10 +159,23 @@ async def fetch_chat_history(session_id: str, limit: int = 20) -> List[Dict[str,
 def cari_database(nama_posisi, metadata_dict):
     apilogy_run = ApilogyRunTime()
 
-    metadata_text = "\n".join(
-        [f"Sumber ID : {mid} || Sumber pasal : {meta.get('pasalTitle','') if isinstance(meta, dict) else str(meta)}"
-         for mid, meta in metadata_dict.items()]
-    )
+    def ambil_ringkasan_pasal(title):
+        if not title:
+            return ""
+
+        title = str(title).replace('"', '').replace("'", "").strip()
+
+        if "." in title:
+            first_sentence = title.split(".")[0].strip()
+        else:
+            first_sentence = " ".join(title.split()[:20]).strip()
+
+        return first_sentence
+
+    metadata_text = "\n".join([
+        f"Sumber ID : {mid} || Sumber pasal : {ambil_ringkasan_pasal(meta.get('pasalTitle', '')) if isinstance(meta, dict) else ambil_ringkasan_pasal(meta)}"
+        for mid, meta in metadata_dict.items()
+    ])
 
     user_prompt = f"""
 Sekarang cari yang benar dan ambilah satu id chunk pasal yang memuat nama posisi 

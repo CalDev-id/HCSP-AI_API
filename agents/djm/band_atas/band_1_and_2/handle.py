@@ -23,11 +23,8 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
                 meta = {}
         metadata_dict[str(r["id"])] = meta
 
-    # print(f"Metadata dict: {metadata_dict}")
-    # print ("----------------------------------------------------------------------")
-
     results = []
-    for row in rows_band_1_2[:4]:
+    for row in rows_band_1_2[:2]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]
@@ -37,8 +34,6 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
         else:
             id_data_pr = cari_database(nama_posisi, metadata_dict)
             id_data_pr = int(id_data_pr)
-            # print(f"ID data_pr ditemukan: {id_data_pr} untuk posisi {nama_posisi}")
-            # print("----------------------------------------------------------------------")
 
             if id_data_pr == 0:
                 retrieve = await retrieve_documents(user_id, nama_posisi)
@@ -47,8 +42,6 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
                     f'SELECT id, content, metadata FROM data_pr_{user_id} WHERE id = $1',
                     id_data_pr
                 )
-                # print(f"Row ditemukan: {retrieve_row} untuk posisi {nama_posisi}")
-                # print("----------------------------------------------------------------------")
                 if retrieve_row:
                     retrieve = retrieve_row["content"]
                 else:

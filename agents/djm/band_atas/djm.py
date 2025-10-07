@@ -40,7 +40,7 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
         pool = postgredb_apilogy.pool
         async with pool.acquire() as conn:
             table_excel = f"excel_djm_{user_id}"
-            table_temp = f"djm_12_temp_{user_id}"
+            table_temp = f"djm_temp_{user_id}"
 
             await conn.execute(f'DROP TABLE IF EXISTS "{table_temp}"')
             await conn.execute(f"""
@@ -79,7 +79,6 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
         return JSONResponse(content={"results": djm_results}, status_code=200)
 
     except Exception as e:
-        # await drop_user_table(user_id)
         err_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
         return JSONResponse(content={"error": err_msg}, status_code=500)
 

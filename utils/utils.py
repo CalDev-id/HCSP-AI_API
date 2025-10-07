@@ -7,14 +7,31 @@ import json
 from llm.apilogy_runtime import ApilogyRunTime
 
 def combine_extracted_text(ocr_result: List[Dict]) -> str:
-
-    combined_text = "\n\n".join(page["content"] for page in ocr_result if "content" in page)
-    return combined_text
-
+    result = []
+    for page in ocr_result:
+        if "content" in page and page["content"]:
+            cleaned = (
+                page["content"]
+                .replace("->", "")
+                .replace(">", "")
+                .replace("<", "")
+                .replace("←", "")
+            )
+            cleaned = re.sub(r"\s+", " ", cleaned).strip()
+            result.append(cleaned)
+    return " ".join(result)
 
 def process_pasal_sections(combined_text: str) -> List[Dict]:
-
-    input_text = re.sub(r"[*#']", "", combined_text)
+    input_text = (
+        combined_text
+        .replace("\n", " ")
+        .replace("\r", " ")
+        .replace("\t", " ")
+    )
+    input_text = re.sub(r'["\'\\]', '', input_text)
+    input_text = re.sub(r'[;#*`]', '', input_text)
+    input_text = re.sub(r'[^\x20-\x7E\s]', '', input_text)
+    input_text = re.sub(r'\s+', ' ', input_text).strip()
 
     lower_text = input_text.lower()
 
@@ -35,7 +52,8 @@ def process_pasal_sections(combined_text: str) -> List[Dict]:
             .replace("(", " ")
             .replace(")", " ")
             .encode("ascii", "ignore").decode()
-        ).strip()
+            .strip()
+        )
 
     output_items = []
 
@@ -45,9 +63,7 @@ def process_pasal_sections(combined_text: str) -> List[Dict]:
         if not section_original:
             continue
 
-        pasal_title = None
-
-        match_title = re.search(r"Pasal\s*\d+\s*\n+([^\n\(]+)", section_original, re.IGNORECASE)
+        match_title = re.search(r"Pasal\s*\d+\s*([^\(]+)", section_original, re.IGNORECASE)
         if match_title:
             pasal_title = clean_pasal_title(match_title.group(1).strip())
         else:
@@ -55,19 +71,27 @@ def process_pasal_sections(combined_text: str) -> List[Dict]:
             if match_inline:
                 pasal_title = clean_pasal_title(match_inline.group(1).strip())
             else:
-                fallback = (
-                    re.sub(r"Pasal\s*\d+", "", section_original, flags=re.IGNORECASE)
-                    .strip()
-                    .split()
-                )
+                fallback = re.sub(r"Pasal\s*\d+", "", section_original, flags=re.IGNORECASE).strip().split()
                 pasal_title = clean_pasal_title(" ".join(fallback[:5]))
+
+        safe_chunk = (
+            section_original
+            .replace("\n", " ")
+            .replace("\r", " ")
+            .replace("\t", " ")
+        )
+        safe_chunk = re.sub(r'["\'\\]', '', safe_chunk)
+        safe_chunk = re.sub(r'[;#*`]', '', safe_chunk)
+        safe_chunk = re.sub(r'[^\x20-\x7E\s]', '', safe_chunk)
+        safe_chunk = re.sub(r'\s+', ' ', safe_chunk).strip()
 
         output_items.append({
             "pasalTitle": pasal_title,
-            "chunkText": f"sumber pasal : {pasal_title}. {section_original}"
+            "chunkText": safe_chunk
         })
 
     return output_items
+
 
 
 async def pasal_corrector(conn, user_id: str):
