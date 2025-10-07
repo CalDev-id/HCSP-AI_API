@@ -3,28 +3,21 @@
 
 import re
 from typing import List, Dict
+import json
+from llm.apilogy_runtime import ApilogyRunTime
 
 def combine_extracted_text(ocr_result: List[Dict]) -> str:
-    """
-    Sama seperti node code 1 di n8n.
-    Ambil semua extracted_text (di kita = content) lalu gabungkan.
-    """
+
     combined_text = "\n\n".join(page["content"] for page in ocr_result if "content" in page)
     return combined_text
 
 
 def process_pasal_sections(combined_text: str) -> List[Dict]:
-    """
-    Sama seperti node code 2 di n8n.
-    Bersihkan text, cari pasal, lalu return list hasil.
-    """
-    # Bersihkan karakter *, #, '
+
     input_text = re.sub(r"[*#']", "", combined_text)
 
-    # Lowercase hanya untuk cari kata 'pasal'
     lower_text = input_text.lower()
 
-    # Cari posisi 'pasal' + angka
     pasal_positions = []
     search_pos = 0
     while True:
@@ -38,10 +31,10 @@ def process_pasal_sections(combined_text: str) -> List[Dict]:
 
     def clean_pasal_title(title: str) -> str:
         return (
-            re.sub(r"\([^)]*\)", " ", title)   # hapus isi dalam kurung
+            re.sub(r"\([^)]*\)", " ", title)
             .replace("(", " ")
             .replace(")", " ")
-            .encode("ascii", "ignore").decode()  # optional: buang karakter aneh
+            .encode("ascii", "ignore").decode()
         ).strip()
 
     output_items = []
@@ -54,17 +47,14 @@ def process_pasal_sections(combined_text: str) -> List[Dict]:
 
         pasal_title = None
 
-        # Pola 1: judul di baris setelah "Pasal xx" sebelum (1)
         match_title = re.search(r"Pasal\s*\d+\s*\n+([^\n\(]+)", section_original, re.IGNORECASE)
         if match_title:
             pasal_title = clean_pasal_title(match_title.group(1).strip())
         else:
-            # Pola 2: judul inline setelah (1) sebelum 'bertanggung jawab'
             match_inline = re.search(r"\(1\)\s*(.*?)\s+bertanggung\s+jawab", section_original, re.IGNORECASE)
             if match_inline:
                 pasal_title = clean_pasal_title(match_inline.group(1).strip())
             else:
-                # Fallback: ambil 5 kata pertama setelah "Pasal xx"
                 fallback = (
                     re.sub(r"Pasal\s*\d+", "", section_original, flags=re.IGNORECASE)
                     .strip()
@@ -78,3 +68,72 @@ def process_pasal_sections(combined_text: str) -> List[Dict]:
         })
 
     return output_items
+
+
+async def pasal_corrector(conn, user_id: str):
+    rows_metadata = await conn.fetch(f'SELECT id, metadata FROM data_pr_{user_id}')
+
+    metadata_dict: Dict[int, dict] = {}
+    for r in rows_metadata:
+        meta = r["metadata"]
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except json.JSONDecodeError:
+                meta = {}
+        metadata_dict[r["id"]] = meta 
+
+    metadata_text = "\n".join(
+        [f"ID:{mid} || {meta.get('pasalTitle','')}" for mid, meta in metadata_dict.items()]
+    )
+
+    user_prompt = f"""
+Berikut daftar nama pasal, rapihkan sesuai instruksi:
+
+{metadata_text}
+
+Output harus dalam format JSON seperti ini:
+("1": "pasalTitle_baru", "2": "pasalTitle_baru", ...)
+    """
+
+    system_prompt = """
+Tugas anda adalah memperbaiki nama pasal. 
+- Jika nama pasal kelebihan kata, terlalu panjang, atau berulang maka rapihkan. 
+- Jika nama posisi sudah benar, biarkan saja. 
+- Hasilkan output hanya dalam JSON mapping id ke pasalTitle baru, tanpa tambahan teks lain.
+- Output HARUS berupa JSON object saja.
+- Jangan menambahkan teks lain, penjelasan, catatan, atau format selain JSON.
+Contoh:
+INPUT => ID:1 || Pengertian Dalam Peraturan ini yang
+OUTPUT => {"1": "Pengertian", "2": "Daftar Posisi"}
+
+    """
+
+    apilogy_run = ApilogyRunTime()
+    response = apilogy_run.generate_response(system_prompt, user_prompt)
+
+    if not response or "choices" not in response:
+        print("Tidak ada respons dari AI.")
+        return
+
+    try:
+        corrected_json = json.loads(response["choices"][0]["message"]["content"].strip())
+    except json.JSONDecodeError:
+        print("Gagal parsing JSON dari respons AI")
+        return
+    for row_id_str, new_title in corrected_json.items():
+        try:
+            row_id = int(row_id_str)
+        except ValueError:
+            continue
+
+        if row_id in metadata_dict:
+            meta = metadata_dict[row_id]
+            meta["pasalTitle"] = new_title
+            await conn.execute(
+                f"UPDATE data_pr_{user_id} SET metadata = $1 WHERE id = $2",
+                json.dumps(meta),
+                row_id,
+            )
+
+    print("Update selesai.")

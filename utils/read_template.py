@@ -3,7 +3,6 @@ from io import BytesIO
 from fastapi import UploadFile
 from utils import postgredb_apilogy
 
-# Extract Excel → list of rows
 async def extract_xlsx(file: UploadFile):
     try:
         content = await file.read()
@@ -21,7 +20,6 @@ async def store_excel_in_db(user_id: str, data: list):
     table_name = f"excel_djm_{user_id}"
 
     async with pool.acquire() as conn:
-        # Reset tabel setiap kali
         await conn.execute(f'DROP TABLE IF EXISTS "{table_name}"')
         await conn.execute(f"""
             CREATE TABLE "{table_name}" (
@@ -34,10 +32,8 @@ async def store_excel_in_db(user_id: str, data: list):
         """)
 
         for row in data:
-            # row = [JOBID, NAMA POSISI, BAND POSISI, ATASAN]
             jobId, nama_posisi, band_posisi, atasan = row
 
-            # Skip baris kosong / jobId None
             if jobId is None:
                 continue
 
@@ -47,7 +43,7 @@ async def store_excel_in_db(user_id: str, data: list):
                 (jobId, nama_posisi, band_posisi, atasan)
                 VALUES ($1, $2, $3, $4)
                 """,
-                int(jobId),  # pastikan integer
+                int(jobId),
                 nama_posisi,
                 band_posisi,
                 atasan
@@ -56,9 +52,6 @@ async def store_excel_in_db(user_id: str, data: list):
     return {"status": "success", "inserted": len(data), "table": table_name}
 
 
-
-
-# Fungsi Drop Table (bisa dipanggil dari endpoint lain)
 async def drop_excel_table(user_id: str):
     pool = postgredb_apilogy.pool
     table_name = f"excel_djm_{user_id}"
