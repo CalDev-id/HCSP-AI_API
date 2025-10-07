@@ -113,7 +113,7 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
     # print ("----------------------------------------------------------------------")
 
     results = []
-    for row in rows_band_1_2[:4]:
+    for row in rows_band_1_2[:2]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]
@@ -170,13 +170,15 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
 async def process_band_3(conn, table_temp, rows_band_3, user_id):
     results = []
     await conn.execute(f"""
-        CREATE TABLE IF NOT EXISTS jr_kepake_{user_id} (
-            id INTEGER PRIMARY KEY,
-            atasan TEXT UNIQUE,
+        CREATE TABLE IF NOT EXISTS jr_temp_{user_id} (
+            id SERIAL PRIMARY KEY,
+            nama_posisi TEXT UNIQUE,
+            atasan TEXT,
             job_responsibilities TEXT
         );
     """)
-    for row in rows_band_3[:8]:
+
+    for row in rows_band_3[:3]:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]
@@ -184,29 +186,55 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
 
         if not nama_posisi:
             mission_statement = job_responsibilities = job_performance = job_authorities = "Nama posisi kosong"
+            retrieve_data = None
         else:
             retrieve_data = await retrieve_position(user_id, atasan)
-
-            jr_kepake_rows = await conn.fetch(
-                f'SELECT job_responsibilities FROM jr_kepake_{user_id} WHERE atasan ILIKE $1',
-                atasan
-            )
-
-            jr_kepake = [row["job_responsibilities"] for row in jr_kepake_rows] if jr_kepake_rows else None
-
-
             mission_statement = ms_agent3(nama_posisi)
-            job_responsibilities = jr_agent3(nama_posisi, band_posisi, retrieve_data, jr_kepake)
+
+            existing_jr = await conn.fetchrow(f"""
+                SELECT job_responsibilities FROM jr_temp_{user_id}
+                WHERE nama_posisi = $1
+            """, nama_posisi)
+
+            if existing_jr:
+                print("sumber : database")
+                job_responsibilities = existing_jr["job_responsibilities"]
+            else:
+                related_positions = await conn.fetch(f"""
+                    SELECT nama_posisi, band_posisi FROM excel_djm_{user_id}
+                    WHERE atasan = $1
+                """, atasan)
+
+                if related_positions:
+                    combined_positions = "; ".join(
+                        [f"{p['nama_posisi']}, Band {p['band_posisi']}" for p in related_positions]
+                    )
+
+                    jr_results_list = jr_agent3(combined_positions, retrieve_data)
+                    print("sumber : llm")
+
+                    for jr_data in jr_results_list:
+                        nama_posisi_dari_agent = jr_data.get("posisi")
+                        jr_text = jr_data.get("jr")
+
+                        if nama_posisi_dari_agent and jr_text:
+                            await conn.execute(f"""
+                                INSERT INTO jr_temp_{user_id} (nama_posisi, atasan, job_responsibilities)
+                                VALUES ($1, $2, $3)
+                                ON CONFLICT (nama_posisi) DO UPDATE SET job_responsibilities = $3
+                            """, nama_posisi_dari_agent, atasan, jr_text)
+
+                    new_jr = await conn.fetchrow(f"""
+                        SELECT job_responsibilities FROM jr_temp_{user_id}
+                        WHERE nama_posisi = $1
+                    """, nama_posisi)
+
+                    job_responsibilities = new_jr["job_responsibilities"] if new_jr else "Job responsibilities tidak ditemukan setelah diproses."
+                else:
+                    job_responsibilities = "Data posisi terkait tidak ditemukan."
+
             job_performance = jp_agent3(nama_posisi, band_posisi, job_responsibilities)
             job_authorities = ja_agent3(nama_posisi, band_posisi, retrieve_data, job_responsibilities, mission_statement)
-
-            await conn.execute(f"""
-                INSERT INTO jr_kepake_{user_id} (id, atasan, job_responsibilities)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (atasan) DO UPDATE
-                SET job_responsibilities = jr_kepake_{user_id}.job_responsibilities || E'\n' || EXCLUDED.job_responsibilities
-            """, job_id, atasan, job_responsibilities)
-
 
         result = {
             "jobId": job_id,
@@ -215,22 +243,19 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             "job_responsibilities": job_responsibilities,
             "job_performance": job_performance,
             "job_authorities": job_authorities,
-            "================": "================",
-            "atasan": atasan,
-            "retrieve_data": retrieve_data,
-            "jr_kepake": jr_kepake,
         }
-        
-        # await conn.execute(f"""
-        #     INSERT INTO "{table_temp}" 
-        #     (jobId, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
-        #     VALUES ($1, $2, $3, $4, $5, $6)
-        # """, job_id, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
+
+        await conn.execute(f"""
+            INSERT INTO "{table_temp}" 
+            (jobId, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        """, job_id, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities)
 
         results.append(result)
-        
-        # await conn.execute(f'DROP TABLE IF EXISTS jr_kepake_{user_id}')
+
+    # await conn.execute(f'DROP TABLE IF EXISTS jr_kepake_{user_id}')
     return results
+
 
 
 
