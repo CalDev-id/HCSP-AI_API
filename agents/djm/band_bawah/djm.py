@@ -3,7 +3,6 @@ from pydantic import BaseModel
 import asyncpg
 from utils import postgredb_apilogy
 from typing import List
-from utils.read_template import drop_excel_table
 from agents.djm.band_bawah.mission_statement import ms_agent
 from agents.djm.band_bawah.job_responsibilities import jr_agent
 from agents.djm.band_bawah.job_performance import jp_agent
@@ -63,11 +62,9 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
                     "job_authorities": job_authorities,
                 })
                 
-        # await drop_excel_table(user_id)
         return JSONResponse(content={"results": djm_results}, status_code=200)
     
     except Exception as e:
-        # await drop_excel_table(user_id)
         err_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
         return JSONResponse(content={"error": err_msg}, status_code=500)
 
@@ -75,10 +72,9 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
 
 async def store_multiple_djm_in_db(user_id: str, data: List[DJMData]):
     pool = postgredb_apilogy.pool
-    table_name = f"djm_atas_{user_id}"
+    table_name = f"djm_verified_{user_id}"
 
     async with pool.acquire() as conn:
-        # Drop & create sekali saja
         await conn.execute(f'DROP TABLE IF EXISTS "{table_name}"')
         await conn.execute(f"""
             CREATE TABLE "{table_name}" (
@@ -112,7 +108,7 @@ async def store_multiple_djm_in_db(user_id: str, data: List[DJMData]):
 async def get_djm_atas(user_id: str):
     pool = postgredb_apilogy.pool
     async with pool.acquire() as conn:
-        table_name = f"djm_atas_{user_id}"
+        table_name = f"djm_verified_{user_id}"
         query = f"""
             SELECT jobid, nama_posisi, mission_statement, job_responsibilities, job_performance, job_authorities
             FROM "{table_name}"

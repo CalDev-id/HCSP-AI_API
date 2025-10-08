@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Form, File, UploadFile, Body
 from typing import Optional
 from typing import Dict, Any, Union, List
-from agents.djm.band_atas.mission_statement import ms_agent
 
 #uvicorn main:app --reload
 
@@ -73,63 +72,3 @@ async def retrieve_position_endpoint(position_name: str = Body(..., embed=True))
     except Exception as e:
         return {"error": str(e)}
     
-@app.post('/retrieve_documents')
-async def retrieve_documents_endpoint(
-    user_id: str = Body(..., embed=True),
-    query_text: str = Body(..., embed=True),
-    band_posisi: str = Body(..., embed=True),
-):
-    try:
-        result = await postgredb_apilogy.retrieve_documents(user_id, query_text)
-        mission_statement = ms_agent(query_text, band_posisi, result)
-        return {"mission_statement": mission_statement, "raw_documents": result}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-#======================================================
-# from llm.groq_runtime import GroqRunTime
-# from agents.djm.djm import handle_create_djm
-# from agents.chat.main import chat_agent
-# from utils import postgredb_apilogy
-# from contextlib import asynccontextmanager
-# from pydantic import BaseModel
-# from fastapi import FastAPI, Form, File, UploadFile
-# from typing import Optional
-# from typing import List
-
-
-# #uvicorn main:app --reload
-
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     await postgredb_apilogy.init_db_pool()
-#     print("Database pool initialized.")
-#     yield
-#     if postgredb_apilogy.pool:
-#         await postgredb_apilogy.pool.close()
-#         print("Database pool closed.")
-
-
-# app = FastAPI(lifespan=lifespan)
-
-# @app.get("/")
-# def read_root():
-#     return {"message": "welcome to the HCSP-AI API"}
-
-
-# @app.post("/create_djm")
-# async def create_djm(
-#     pr_file: List[UploadFile] = File(..., description="Upload a PDF file"),
-#     template_file: UploadFile = File(..., description="Upload a XLSX template file")
-# ):
-#     return await handle_create_djm(pr_file, template_file)
-
-# @app.post("/chat")
-# async def chat_endpoint(
-#     session_id: str = Form(...),
-#     message: str = Form(...),
-#     file: Optional[UploadFile] = None
-# ):
-#     response = await chat_agent(session_id, message, file)
-#     return response

@@ -3,6 +3,7 @@ from typing import Optional
 from utils.embedding import get_embedding
 import json
 from typing import List, Dict, Any
+from llm.apilogy_runtime import ApilogyRunTime
 
 DB_URL = "postgresql://cal:pass@localhost:5432/cal"
 pool: Optional[asyncpg.pool.Pool] = None
@@ -27,28 +28,6 @@ async def create_user_table(user_id: str):
         ''')
     return table_name
 
-# async def add_section(user_id: str, section_text: str, section_id: str, metadata):
-#     global pool
-#     table_name = f"data_pr_{user_id}"
-#     vector = get_embedding(section_text)
-#     vector_str = "[" + ",".join(str(x) for x in vector) + "]"
-
-#     # Kalau metadata masih string → bungkus jadi dict
-#     if isinstance(metadata, str):
-#         metadata = {"pasalTitle": metadata}
-
-#     async with pool.acquire() as conn:
-#         await conn.execute(
-#             f"""
-#             INSERT INTO "{table_name}" (id, content, metadata, embedding)
-#             VALUES ($1, $2, $3::jsonb, $4::vector)
-#             ON CONFLICT (id) DO UPDATE
-#             SET content = EXCLUDED.content,
-#                 metadata = EXCLUDED.metadata,
-#                 embedding = EXCLUDED.embedding;
-#             """,
-#             section_id, section_text, json.dumps(metadata), vector_str
-#         )
 async def add_section(user_id: str, section_text: str, metadata):
     global pool
     table_name = f"data_pr_{user_id}"
@@ -71,9 +50,6 @@ async def add_section(user_id: str, section_text: str, metadata):
             """,
             cleaned_text, metadata_str, vector_str
         )
-
-
-
 
 async def retrieve_documents(user_id: str, query_text: str, top_k: int = 10, filter_metadata: Optional[dict] = None):
     global pool
@@ -101,53 +77,13 @@ async def retrieve_documents(user_id: str, query_text: str, top_k: int = 10, fil
             *params
         )
 
-    # Ambil semua content
     contents = [row["content"] for row in rows if row["content"]]
 
-    # Gabungkan jadi satu string compact (pakai label Chunk)
     combined_text = " ".join(
         [f"Chunk {i+1}: {c}" for i, c in enumerate(contents)]
     )
 
     return combined_text
-
-# async def retrieve_documents(user_id: str, query_text: str, top_k: int = 10):
-#     global pool
-#     table_name = f"data_pr_{user_id}" 
-#     query_vector = get_embedding(query_text)
-#     query_vector_str = "[" + ",".join(str(x) for x in query_vector) + "]"
-
-#     async with pool.acquire() as conn:
-#         rows = await conn.fetch(
-#             f"""
-#             SELECT 
-#                 content
-#             FROM "{table_name}"
-#             ORDER BY (1 - (embedding <=> $1::vector)) DESC
-#             LIMIT $2;
-#             """,
-#             query_vector_str,
-#             top_k
-#         )
-
-#     # Ambil semua content
-#     contents = [row["content"] for row in rows if row["content"]]
-
-#     # Gabungkan jadi satu string compact (pakai label Chunk)
-#     combined_text = " ".join(
-#         [f"Chunk {i+1}: {c}" for i, c in enumerate(contents)]
-#     )
-
-#     # Sama persis dengan return n8n
-#     return {
-#         "combined_content": combined_text
-#     }
-
-async def drop_user_table(user_id: str):
-    global pool
-    table_name = f"data_pr_{user_id}"
-    async with pool.acquire() as conn:
-        await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
 
 async def retrieve_position_bawah(user_id: str, position_name: str):
     global pool
@@ -155,12 +91,12 @@ async def retrieve_position_bawah(user_id: str, position_name: str):
         djm_atas = await conn.fetch(
             f'''
             SELECT * 
-            FROM "djm_atas_{user_id}" 
+            FROM "djm_verified_{user_id}" 
             WHERE LOWER(nama_posisi) = LOWER($1)
             ''',
             position_name
         )
-        return [dict(record) for record in djm_atas]  # convert ke list of dict
+        return [dict(record) for record in djm_atas]
 
 async def retrieve_position(user_id: str, position_name: str):
     global pool
@@ -168,12 +104,12 @@ async def retrieve_position(user_id: str, position_name: str):
         djm_atas = await conn.fetch(
             f'''
             SELECT * 
-            FROM "djm_12_temp_{user_id}" 
+            FROM "djm_temp_{user_id}" 
             WHERE LOWER(nama_posisi) = LOWER($1)
             ''',
             position_name
         )
-        return [dict(record) for record in djm_atas]  # ini aman, djm_atas pasti iterable
+        return [dict(record) for record in djm_atas]
 
 
 
@@ -218,3 +154,55 @@ async def fetch_chat_history(session_id: str, limit: int = 20) -> List[Dict[str,
             session_id, limit
         )
         return list(reversed([dict(r) for r in rows]))
+    
+
+def cari_database(nama_posisi, metadata_dict):
+    apilogy_run = ApilogyRunTime()
+
+    def ambil_ringkasan_pasal(title):
+        if not title:
+            return ""
+
+        title = str(title).replace('"', '').replace("'", "").strip()
+
+        if "." in title:
+            first_sentence = title.split(".")[0].strip()
+        else:
+            first_sentence = " ".join(title.split()[:20]).strip()
+
+        return first_sentence
+
+    metadata_text = "\n".join([
+        f"Sumber ID : {mid} || Sumber pasal : {ambil_ringkasan_pasal(meta.get('pasalTitle', '')) if isinstance(meta, dict) else ambil_ringkasan_pasal(meta)}"
+        for mid, meta in metadata_dict.items()
+    ])
+
+    user_prompt = f"""
+Sekarang cari yang benar dan ambilah satu id chunk pasal yang memuat nama posisi 
+atau paling relevan dengan posisi berikut : {nama_posisi}. 
+Berikut chunk pasal yang harus anda periksa : 
+{metadata_text}
+    """
+
+    system_prompt = """
+Tugas Anda adalah mengambil id pasal yang memiliki sumber pasal sangat relevan atau memuat nama posisi yang diberikan. 
+Pastikan nama jabatan atau nama posisi terdapat di sumber pasalnya, jika tidak ada maka cari yang paling relevan. 
+Berikan hanya 1 ID sumber dari chunk yang relevan. Jangan menambahkan kalimat pengantar. 
+Pahami singkatan atau akronim pada nama jabatan, misal SGM = Senior General Manager, 
+MGR = Manager, HC = Human Capital, VP = Vice President, dll. 
+Jika tidak ditemukan chunk yang relevan, cukup keluarkan 0.
+Contoh:
+INPUT : SGM HC COMMUNICATION
+Data chunk : Sumber ID : 5 || Sumber pasal : Senior General Manager HC Communication.
+OUTPUT : 5
+    """
+
+    response = apilogy_run.generate_response(system_prompt, user_prompt)
+
+    if response:
+        response = response.strip()
+        return response
+    else:
+        print("Tidak ada respons dari AI.")
+        return "Tidak ada respons dari AI."
+

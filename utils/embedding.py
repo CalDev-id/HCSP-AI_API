@@ -21,5 +21,4 @@ def get_embedding(text: str):
         raise Exception(f"Embedding API error {response.status_code}: {response.text}")
 
     data = response.json()
-    # asumsi struktur respons: {"data": [{"embedding": [..list of floats..]}]}
     return data["data"][0]["embedding"]
