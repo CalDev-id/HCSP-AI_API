@@ -39,19 +39,20 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
         djm_results = await get_djm_atas(user_id)
 
         # for row in rows:
-        for row in rows[:2]:
+        for row in rows:
             job_id = row["jobid"]
             nama_posisi = row["nama_posisi"]
             atasan = row["atasan"]
+            band_posisi = row["band_posisi"]
 
             if not nama_posisi:
                 mission_statement = job_responsibilities = job_performance = job_authorities = "Nama posisi kosong"
             else:
                 retrieve_data = await retrieve_position_bawah(user_id, atasan)
                 mission_statement = ms_agent(nama_posisi, retrieve_data)
-                job_responsibilities = jr_agent(nama_posisi, retrieve_data)
-                job_performance = jp_agent(nama_posisi, retrieve_data, job_responsibilities)
-                job_authorities = ja_agent(nama_posisi, retrieve_data, job_responsibilities, mission_statement)
+                job_responsibilities = jr_agent(nama_posisi, band_posisi, retrieve_data)
+                job_performance = jp_agent(nama_posisi, band_posisi, retrieve_data, job_responsibilities)
+                job_authorities = ja_agent(nama_posisi, retrieve_data, band_posisi, job_responsibilities, mission_statement)
 
                 djm_results.append({
                     "jobId": job_id,

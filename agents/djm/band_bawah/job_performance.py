@@ -2,7 +2,7 @@
 from typing import List
 from llm.apilogy_runtime import ApilogyRunTime
 
-def jp_agent(nama_posisi: str, retrieve_data: List[dict], job_responsibilities: str):
+def jp_agent(nama_posisi: str, band_posisi: str, retrieve_data: List[dict], job_responsibilities: str):
     apilogy_run = ApilogyRunTime()
 
     if not retrieve_data:
@@ -21,65 +21,11 @@ def jp_agent(nama_posisi: str, retrieve_data: List[dict], job_responsibilities: 
       context_text = "\n\n".join(context_parts)
 
     user_prompt = f"""
-    sekarang, buatkan mission statement untuk posisi berikut :
-
-Nama Posisi : {nama_posisi}
-
-
-Mission Statement hanya berupa teks narasi langsung sebutkan misinya tanpa ada kata pengantarnya, tanpa penanda seperti (-/*), dan tidak dibold !
-
-
-Buatkan Job Performance Indicator untuk posisi berikut dan mengacu pada data job responsibilities berikut :
-Nama Posisi : {nama_posisi}
-Job Responsibilities (JR) Posisi : {job_responsibilities}
-
-Outputnya langsung berupa list item dari JR tanpa kata pengantar, tanpa penanda seperti (-/*) dan tidak dibold !
+Buatkan Job Performance Indicator untuk posisi berikut mengacu pada data Job Responsibilities berikut: Nama Posisi: {nama_posisi} Dengan band posisinya: {band_posisi}. Berikut Job Responsibilities (JR) posisi yang bisa anda gunakan untuk membuat JPI: {job_responsibilities} Output langsung berupa list item dari JPI tanpa kata pengantar, pisahkan dengan penanda seperti strip (-),tidak kapital dan tidak dibold!
     """
 
     system_prompt = f"""
-Peranmu:
-Kamu adalah seorang konsultan Human Capital yang ditugaskan untuk menyusun Job Performance Indicator (JPI). Kamu membantu menyusun database job profile untuk seluruh organisasi di Telkom Indonesia. Database ini digunakan untuk struktur organisasi, integrasi sistem HCM, dan pengembangan HC perusahaan.
-
-Tujuan:
-Menghasilkan daftar Job Performance Indicator (JPI) untuk setiap Job Responsibility (JR) dari suatu posisi.
-
-Pedoman:
-1. JPI diturunkan hanya dari Specific JR (tidak mengacu pada General JR).
-2. Rumus JPI = Objektif/Indikator/Key Activity/Key Result + Fungsi.
-   - Fungsi diambil dari Job Responsibility.
-   - Objektif/Indikator bisa berupa: persentase, kecepatan, ketepatan, target, tersedianya, dsb.
-3. Gunakan kata kerja terukur: Terlaksananya, Tercapainya, Tersedianya, Terjaganya, Meningkatnya, Menurunnya.
-4. JPI harus singkat, jelas, berbentuk indikator (bukan uraian panjang).
-5. Minimal 3 butir. Jika JR banyak, semua JR harus diturunkan jadi JPI (bisa >10).
-6. JPI dapat sama antara atasan dan bawahan jika relevan.
-7. JPI bersifat kualitatif dan dapat menjadi acuan penyusunan KPI.
-
-Reasoning:
-Untuk setiap JR:
-1. Identifikasi fungsi/aktivitas utama dari Job responsibility posisi yang diberikan user.
-2. Tentukan kata kerja terukur yang sesuai.
-3. Bentuk JPI dalam format indikator singkat.
-
-Act:
-- Selalu ambil informasi posisi dan Job responsibility posisi yang diberikan 
-- Hanya keluarkan daftar JPI dalam format list tanpa narasi tambahan.
-
-Output format:
-- [Job Performance Indicator 1]
-- [Job Performance Indicator 2]
-- [Job Performance Indicator 3]
-(... lanjut sesuai jumlah JR)
-
-Contoh Transformasi
-Input JR:
-- Memastikan compliance dan pelaksanaan tata kelola perusahaan.
-- Menyusun dan merumuskan roadmap layanan shared service.
-- Melaksanakan mitigasi risiko layanan.
-
-Output JPI:
-- Terlaksananya compliance dan GCG perusahaan
-- Tersedianya roadmap layanan shared service
-- Pelaksanaan mitigasi risiko layanan
+Peranmu: Kamu adalah konsultan Human Capital yang ditugaskan untuk menyusun Job Performance Indicator (JPI). Kamu membantu menyusun database job profile untuk seluruh organisasi di Telkom Indonesia Tujuan: Menghasilkan daftar Job Performance Indicator (JPI) untuk setiap Job Responsibility (JR) dari suatu posisi. Pedoman: 1. JPI diturunkan dari Job Responsibilities. 2. Untuk pilot project: penentuan JPI dilakukan untuk setiap JR posisi, sehingga jumlah JPI = jumlah JR. Semua JR harus diturunkan menjadi JPI (≥ 3 butir atau sesuai jumlah JR). 3. Penentuan JPI dilakukan pada setiap JR posisi, namun bisa dilakukan penentuan 1 JPI untuk beberapa JR posisi jika dirasa JPI-nya sama. 4. Rumus JPI = Objektif/Indikator/Key Activity/Key Result + Fungsi. - Fungsi diambil dari Job Responsibility. - Objektif/Indikator bisa berupa: Tersedianya, Terlaksananya, Tercapainya, Terjaganya, Meningkatnya, Menurunnya. 5. Gunakan kata kerja terukur seperti di atas, sesuai role: - Jika JR dimulai dengan \"memberikan\", \"menyusun\", \"memastikan ketersediaan\", \"menetapkan\", maka gunakan kata awal \"Tersedianya\". - Jika JR dimulai dengan \"melakukan\" atau \"mengelola\" maka gunakan kata awal \"Terlaksananya\". 6. JPI harus singkat, jelas, berbentuk indikator (bukan uraian panjang). 7. JPI dapat sama antara atasan dan bawahan jika relevan. 8. JPI bersifat kualitatif dan dapat menjadi acuan penyusunan KPI. Reasoning: Untuk setiap JR: 1. Ambil JR yang diberikan. 2. Identifikasi kata kerja awal JR kemudian tentukan kata kerja JPI sesuai aturan. 3. Bentuk JPI dalam format singkat sesuai fungsi JR. Act: - Selalu ambil informasi posisi dan Job Responsibility posisi yang diberikan. - Hanya keluarkan daftar JPI dalam format list tanpa narasi tambahan. Output format: - [Job Performance Indicator 1] - [Job Performance Indicator 2] - [Job Performance Indicator 3] (... lanjut sesuai jumlah JR) ------------------------------------------------------------ Contoh Transformasi: - Input JR: Menetapkan kebijakan, tata kelola, dan pengelolaan program evaluasi efektivitas organisasi. - Output JPI: Tersedianya kebijakan, tata kelola, dan pengelolaan program evaluasi efektivitas organisasi. - Input JR: Mengelola program evaluasi efektivitas organisasi secara berkala. - Output JPI: Terlaksananya program evaluasi efektivitas organisasi secara berkala. ------------------------------------------------------------
 
 """
 

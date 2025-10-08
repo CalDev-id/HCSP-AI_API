@@ -1,109 +1,61 @@
-
 from typing import List
 from llm.apilogy_runtime import ApilogyRunTime
 
-def jr_agent(nama_posisi: str, retrieve_data: List[dict]):
+def jr_agent(nama_posisi: str, band_posisi: str, retrieve_data: List[dict], field_name: str = "job_responsibilities"):
+    """
+    Generate Job Responsibilities berdasarkan data atasan yang relevan.
+    - field_name bisa diubah untuk memilih field sumber (misal: 'job_responsibilities', 'mission_statement', dll)
+    """
+
     apilogy_run = ApilogyRunTime()
 
     if not retrieve_data:
-      context_text = "Tidak ada konteks pasal relevan."
+        context_text = "Tidak ada konteks relevan."
     else:
-      context_parts = []
-      for record in retrieve_data:
-          jobId = record.get("jobId", "")
-          nama_posisi = record.get("nama_posisi", "")
-          mission_statement = record.get("mission_statement", "")
-          job_responsibilities = record.get("job_responsibilities", "")
-          job_performance = record.get("job_performance", "")
-          job_authorities = record.get("job_authorities", "")
-          context_parts.append(f"Job ID: {jobId}\nNama Posisi: {nama_posisi}\nMission Statement: {mission_statement}\nJob Responsibilities: {job_responsibilities}\nJob Performance: {job_performance}\nJob Authorities: {job_authorities}\n")
-        
-      context_text = "\n\n".join(context_parts)
+        context_parts = []
+        for record in retrieve_data:
+            # Ambil nilai field sesuai field_name
+            field_value = record.get(field_name, "")
+            if field_value:
+                context_parts.append(field_value.strip())
 
+        # Jika tidak ada data di field tersebut
+        context_text = "\n\n".join(context_parts) if context_parts else f"Tidak ada data pada field '{field_name}'."
+        print(f"Context Text for {nama_posisi}:\n{context_text}\n")
+
+    # Buat user prompt
     user_prompt = f"""
-Buatkan Job Responsibilities untuk posisi berikut :
+Buatkan Job Responsibilities minimal 1 tugas/jr untuk posisi bawahan berikut:
+Nama Posisi: {nama_posisi}
+Band Posisi: {band_posisi}
 
-Nama Posisi : {nama_posisi}
-perlu diingat singkatan berikut, perluas singkatan yang ada di nama posisi ! :
-1. SGM = senior general Manager
-2. SM = senior manager
-3. MGR = manager
-4. OFF = officer
+Berikut List tugas-tugas atasan dari posisi {nama_posisi}:
+{context_text}
 
-Outputnya langsung berupa list item dari JR tanpa kata pengantar, tanpa penanda seperti (-/*) dan tidak dibold !
-
-    """
+Instruksi:
+- BACA SEMUA list data atasan yang diberikan, pilih minimal 1 yang paling relevan dengan nama posisi dari tugas atasannya.
+- Ubah kata kerja depan dengan kata kerja sesuai panduan kata band 4,5,6, dan Senior Officer yang disediakan dan jangan asal.
+- Jangan menambah atau mengubah isi aktivitas utama selain kata kerja depannya.
+- Hasil akhir berupa list Job Responsibilities sesuai jumlah yang ditentukan.
+- Setiap list item dipisahkan dengan tanda strip (-).
+- Output hanya list JR tanpa catatan atau penjelasan tambahan!
+"""
 
     system_prompt = f"""
-Peranmu
-Kamu adalah konsultan Human Capital berpengalaman. Tugasmu adalah membantu membuat Job Responsibilities (JR). 
-
-=====================================================
-Reasoning (Langkah Berpikir)
-1. Ambil konteks → gunakan data dari context database dibawah untuk memahami posisi, unit kerja, dan * aktifitas utama posisi tersebut *. cari dalam tools context database dibawah aktivitas utama posisi/atasan posisi tersebut. bukan wewenang melainkan aktivitas utama. wajib ikuti cara cari nama posisi lengkapnya beserta singkatannya di context database dibawah, berikut contoh mencari key di context database:
-"aktivitas utama + [nama posisi]" = 
-"aktivitas utama senior general manager (sgm)"
-
-2. Identifikasi level band posisi:
-   - BP 1 & 2 → Managerial Tinggi
-   - BP 3 → Managerial
-   - BP 3 Non-Managerial & BP4–6 → Operasional
-   - Engine Team → Spesialis Analisis
-3. Tentukan lingkup peran → pahami aktivitas inti, produk/fungsi yang ditangani, relasi antar unit.
-4. Buat JR dengan rumus:
-   JR = Kata Kerja + Fungsi/Aktivitas/Produk
-   - Gunakan kata kerja sesuai pedoman band.
-   - SGM dan SM → ** JANGAN AMBIL DARI 'get_prev_jr' ** melainkan ambil langsung dari aktivitas utama posisi tersebut dari context database dibawah, disalin SEMUA dan tidak diubah !.
-   - Posisi lain seperti MGR/OFF/ENGINE TEAM → ** WAJIB diambil dari 'get_prev_jr' dahulu ** untuk posisi atasannya yang relevan diturunkan dari posisi atasnya, lalu dinalar.
-   - Pastikan tugas kepala unit diturunkan jadi operasional untuk level bawah.
-5. Validasi prinsip JR → pastikan JR:
-   - Faktual, spesifik, aktual, relatif tetap.
-   - Mencerminkan hasil utama, bukan sekadar proses.
-   - Terukur keberhasilannya.
-6. Susun hasil → gabungkan 3 General JR wajib + SEMUA Specific JR sesuai band posisi dan posisinya.
-
-=====================================================
-Act (Output yang Harus Dihasilkan)
-Hasilkan daftar Job Responsibilities dalam format bullet point:
-
-- General JR (wajib, selalu 3 butir pertama):
-  - Melaksanakan implementasi aktivitas-aktivitas budaya organisasi.
-  - Membangun relasi dengan unit kerja lain dan key person (internal/eksternal).
-  - Memastikan kompetensi yang dipersyaratkan bagi pekerjaan, dengan mempelajari keahlian/pengetahuan yang sesuai.
-
-- SEMUA Specific JR (berdasarkan band & kata kerja pedoman):
-  [Specific Responsibility 1]
-  [Specific Responsibility 2]
-  [Specific Responsibility 3]
-  … (sesuai kebutuhan)
-
-=====================================================
-Pedoman Kata Kerja (per Band)
-- BP 1 & 2 Managerial → Menyetujui, Mengarahkan, Merencanakan, Mengembangkan, Menentukan, Memberi otorisasi, dll.
-- BP 3 Managerial → Mencapai, Memastikan, Mengevaluasi, Mengidentifikasi, Memantau, Meningkatkan, dll.
-- BP 3 Non-Managerial & BP4–6 → Membandingkan, Mengoperasikan, Melaksanakan, Menyajikan, Menghasilkan, Memberitahukan, dll.
-- Engine Team → Menganalisa, Menilai, Memungkinkan, Meramalkan, Merekomendasikan, Mengusulkan, dll.
-
-=====================================================
-Contoh Alur (Singkat)
-- SGM (Band I/II) → JR langsung COPY semua dari aktivitas posisi yang diambil dari context database dibawah.
-- SM (Band II) → JR langsung COPY semua dari aktivitas posisi yang diambil dari context database dibawah.
-- MGR (Band III) → lihat dari SM ** WAJIB ambil dari tools 'get_prev_jr' ** strukturisasi JR nya sesuai aturan/rumus → diturunkan ke Officer.
-- Officer 1 (Band IV) → ** WAJIB ambil tugas MGR dengan tools 'get_prev_jr'** lalu strukturisasi menjadi mengelola, melakukan identifikasi, menyediakan program (turunan dari Manager).
-- Officer 2/3 (Band V/VI) → ** WAJIB ambil tugas MGR dengan tools 'get_prev_jr' ** lalu strukturisasi menjadi mengelola evaluasi performa, melaksanakan pelaporan progress (turunan dari Manager).
-
-
-gunakan context database ini : 
-{context_text}
+Tugasmu adalah membuat Job Responsibilities (JR).\n\nIkuti langkah berikut:\n1) Rumus JR = [Kata Kerja + Aktivitas utama dari atasan]. Gunakan kata kerja sesuai pedoman band/posisi.\n2) JR diturunkan dari JR atasan yang diberikan user. Jangan ubah atau menambah narasi aktivitas utama, hanya boleh ubah kata kerja di depan sesuai dengan panduan kata kerja band  yang sesuai dengan kaidah bahasa Indonesia.\n3) - Jumlah JR untuk tiap posisi yang diberikan minimal 1 dan boleh lebih selama masih tugas yang relevan - Pemilihan tugas harus sangat relevan dengan nama posisi/fungsi, atau memuat kata kunci spesifik dari nama posisi.\n4) Output HARUS berupa daftar Job Responsibilities spesifik sesuai band/posisi, tanpa catatan tambahan, tanpa penjelasan, tanpa disclaimer, tanpa narasi pembuka/penutup. Hanya list JR murni.\n\n Pedoman Kata Kerja Band 4,5,6, dan Senior Officer : [Memeriksa, Membandingkan, Menyebarkan, Mengumpulkan, Menginformasikan, Memberitakan, Mengadakan, Memperoleh, Mengoperasikan, Melaksanakan, Menyajikan, Memproses, Menghasilkan, Menyampaikan, Menyediakan]\n contoh Format Output yang anda bisa ikuti:\n- [Specific Responsibility 1]\n- [Specific Responsibility 2]\n- [Specific Responsibility 3]\n\nIngat: Output TIDAK BOLEH memuat catatan atau keterangan tambahan dalam situasi apapun.
 """
+
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
     if response:
         job_responsibilities = response.strip()
-        
-        job_responsibilities = job_responsibilities.replace("- ", "• ")
-        job_responsibilities = job_responsibilities.replace("'", "").replace("[", "").replace("]", "")
-        
+        job_responsibilities = (
+            job_responsibilities
+            .replace("- ", "• ")
+            .replace("'", "")
+            .replace("[", "")
+            .replace("]", "")
+        )
         return job_responsibilities
     else:
         print("Tidak ada respons dari AI.")

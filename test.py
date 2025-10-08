@@ -86,92 +86,154 @@
 # print(response.text)
 
 
-from llm.deepseek_runtime import DeepseekRunTime
-from llm.apilogy_runtime import ApilogyRunTime
-from llm.groq_runtime import GroqRunTime
-from datetime import datetime
+# from llm.deepseek_runtime import DeepseekRunTime
+# from llm.apilogy_runtime import ApilogyRunTime
+# from llm.groq_runtime import GroqRunTime
+# from datetime import datetime
+# import json
+
+# def test_deepseek():
+#     deepseek_run = DeepseekRunTime()
+#     apilogy_run = ApilogyRunTime()
+#     groq_run = GroqRunTime()
+#     system_prompt = """
+# Kamu adalah asisten analisis organisasi yang sangat teliti. 
+# Tugasmu adalah membagi daftar *job responsibilities* dari satu posisi atasan kepada beberapa posisi bawahan yang tersedia.
+
+# 🔹 Aturan utama:
+# 1. **Bagi jumlah job responsibilities secara merata** ke seluruh posisi bawahan.
+# 2. Jika jumlahnya tidak bisa dibagi rata, **bagikan sisa tugas secara adil** ke posisi lain agar tidak ada yang tertinggal.
+# 3. **Tidak boleh ada duplikasi** antar posisi.
+# 4. **Setiap job responsibility harus masuk ke salah satu posisi.**
+# 5. **Output wajib berupa JSON array saja**, tanpa narasi, tanpa tambahan teks, tanpa komentar.
+
+# 🔹 Format output:
+# [
+#   {
+#     "posisi_bawahan": "nama posisi",
+#     "job_responsibility": [
+#       "tugas 1",
+#       "tugas 2",
+#       "tugas 3"
+#     ]
+#   },
+#   ...
+# ]
+
+# Pastikan format JSON valid dan tidak ada elemen yang kosong.
+# """
+
+#     user_prompt = """
+#     Berikut adalah daftar job responsibility dari posisi atasan. 
+#     Tolong bagikan secara merata ke posisi bawahan sesuai kemampuan dan relevansinya. 
+#     Jika ada sisa, distribusikan lagi agar semua job responsibility terbagi tanpa sisa.
+
+#     📋 Job Responsibilities:
+#     1 Menerjemahkan dan mengembangkan program dan strategi human capital Perusahaan ke dalam program pengembangan human capital pada Unit Kerja yang dikelolanya
+# 2 Melaksanakan peran human capital strategic partner dalam mendukung pencapaian sasaran Unit Kerja melalui advisory, konsultasi, dan rekomendasi solusi yang terintegrasi terkait pengelolaan human capital kepada Unit Kerja
+# 3 Mengidentifikasi dan mengevaluasi gap kapabilitas organisasi dengan kapabilitas human capital termasuk di dalamnya kebutuhan kompetensi shifting
+# 4 Memfasilitasi, mengidentifikasi, dan menganalisa kebutuhan penyesuaian organisasi Unit Kerja untuk mendukung pencapaian strategi objektif perusahaan
+# 5 Mengelola efektivitas pengelolaan human capital di Unit Kerja yang dikelolanya dengan mengendalikan indikator-indikator yang mencakup antara lain produktivitas dan engagement karyawan
+# 6 Melaksanakan career management yang meliputi proses staffing, promosi, mutasi, rotasi, dan penugasan dalam rangka pemenuhan kebutuhan tenaga kerja dan optimalisasi human capital pada Unit Kerja dan anak Perusahaan khususnya untuk karyawan Telkom dalam penugasan entitas di luar telkom (EDLT)
+# 7 Memberikan feedback improvement kebijakan pengelolaan human capital berdasarkan hasil evaluasi pengelolaan human capital di Unit Kerja
+# 8 Menyusun dan mengevaluasi micro workforce planning yang mengacu pada dokumen master plan HCM
+# 9 Melakukan pengelolaan job management dalam hal memastikan tersedianya job profile dan job requirement untuk level nonmanagerial dengan mempertimbangkan role and responsibility dari kebijakan organisasi yang berlaku
+# 10 Melakukan koordinasi terkait talent and leadership development
+# 11 Memastikan identifikasi, updating, dan pemeliharaan data klasifikasi talent
+# 12 Menyediakan data untuk pelaksanaan dan penyelesaian penilaian kompetensi (competency assessment)
+# 13 Melakukan monitoring dan memberi masukan terkait program culture dan employee engagement
+# 14 Memastikan tersedianya strategi dan perencanaan atas program people transition lingkup Telkom Group
+# 15 Melakukan advisory terkait rumusan kebijakan dan mekanisme pengelolaan union relation dan industrial relation
+# 16 Memastikan keselarasan individual performance management dengan kontrak manajemen mengacu pada Unit Kerja yang dilayaninya
+
+#     📌 Posisi Bawahan yang tersedia:
+#     MANAGER HC INTEGRATED SOLUTION AND DEVELOPMENT I
+# MANAGER HC INTEGRATED SOLUTION AND DEVELOPMENT II
+# MANAGER HC INTEGRATED SOLUTION AND DEVELOPMENT III
+
+#     Hasil akhir harus berupa JSON array sesuai format yang sudah dijelaskan.
+#     """
+#     response = apilogy_run.generate_response(system_prompt, user_prompt)
+#     # response = groq_run.generate_response(system_prompt, user_prompt)
+#     # response = deepseek_run.generate_response(system_prompt, user_prompt)
+#     print(response)
+
+#     # ---- SIMPAN OTOMATIS KE FILE JSON ----
+#     filename = f"response_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.json"
+
+#     try:
+#         # coba parse kalau hasilnya valid JSON string
+#         parsed = json.loads(response)
+#     except (TypeError, json.JSONDecodeError):
+#         # kalau bukan JSON valid, simpan sebagai string mentah
+#         parsed = {"raw_response": str(response)}
+
+#     with open(filename, "w", encoding="utf-8") as f:
+#         json.dump(parsed, f, ensure_ascii=False, indent=2)
+
+#     print(f"\n✅ Output berhasil disimpan ke file: {filename}")
+
+# if __name__ == "__main__":
+#     test_deepseek()
+
+
+# import csv
+# import json
+
+# def csv_to_json(csv_file_path, json_file_path):
+#     data = []
+
+#     with open(csv_file_path, encoding='utf-8') as csv_file:
+#         csv_reader = csv.DictReader(csv_file)
+#         for row in csv_reader:
+#             # Ubah nama kolom sesuai kebutuhan
+#             new_row = {
+#                 "jobId": int(row.get("job_id", 0)) if row.get("job_id") else None,
+#                 "nama_posisi": row.get("nama_job", "").strip(),
+#                 "mission_statement": row.get("ms", "").strip(),
+#                 "job_responsibilities": row.get("jr", "").strip(),
+#                 "job_performance": row.get("jpi", "").strip(),
+#                 "job_authorities": row.get("ja", "").strip()
+#             }
+#             data.append(new_row)
+
+#     # Simpan hasil ke JSON
+#     with open(json_file_path, 'w', encoding='utf-8') as json_file:
+#         json.dump(data, json_file, indent=4, ensure_ascii=False)
+
+#     print(f"✅ File JSON berhasil dibuat di: {json_file_path}")
+
+# # Contoh penggunaan
+# csv_to_json('djm_result_network.csv', 'djm_result_network.json')
+
 import json
+import csv
 
-def test_deepseek():
-    deepseek_run = DeepseekRunTime()
-    apilogy_run = ApilogyRunTime()
-    groq_run = GroqRunTime()
-    system_prompt = """
-Kamu adalah asisten analisis organisasi yang sangat teliti. 
-Tugasmu adalah membagi daftar *job responsibilities* dari satu posisi atasan kepada beberapa posisi bawahan yang tersedia.
-
-🔹 Aturan utama:
-1. **Bagi jumlah job responsibilities secara merata** ke seluruh posisi bawahan.
-2. Jika jumlahnya tidak bisa dibagi rata, **bagikan sisa tugas secara adil** ke posisi lain agar tidak ada yang tertinggal.
-3. **Tidak boleh ada duplikasi** antar posisi.
-4. **Setiap job responsibility harus masuk ke salah satu posisi.**
-5. **Output wajib berupa JSON array saja**, tanpa narasi, tanpa tambahan teks, tanpa komentar.
-
-🔹 Format output:
-[
-  {
-    "posisi_bawahan": "nama posisi",
-    "job_responsibility": [
-      "tugas 1",
-      "tugas 2",
-      "tugas 3"
-    ]
-  },
-  ...
-]
-
-Pastikan format JSON valid dan tidak ada elemen yang kosong.
-"""
-
-    user_prompt = """
-    Berikut adalah daftar job responsibility dari posisi atasan. 
-    Tolong bagikan secara merata ke posisi bawahan sesuai kemampuan dan relevansinya. 
-    Jika ada sisa, distribusikan lagi agar semua job responsibility terbagi tanpa sisa.
-
-    📋 Job Responsibilities:
-    1 Menerjemahkan dan mengembangkan program dan strategi human capital Perusahaan ke dalam program pengembangan human capital pada Unit Kerja yang dikelolanya
-2 Melaksanakan peran human capital strategic partner dalam mendukung pencapaian sasaran Unit Kerja melalui advisory, konsultasi, dan rekomendasi solusi yang terintegrasi terkait pengelolaan human capital kepada Unit Kerja
-3 Mengidentifikasi dan mengevaluasi gap kapabilitas organisasi dengan kapabilitas human capital termasuk di dalamnya kebutuhan kompetensi shifting
-4 Memfasilitasi, mengidentifikasi, dan menganalisa kebutuhan penyesuaian organisasi Unit Kerja untuk mendukung pencapaian strategi objektif perusahaan
-5 Mengelola efektivitas pengelolaan human capital di Unit Kerja yang dikelolanya dengan mengendalikan indikator-indikator yang mencakup antara lain produktivitas dan engagement karyawan
-6 Melaksanakan career management yang meliputi proses staffing, promosi, mutasi, rotasi, dan penugasan dalam rangka pemenuhan kebutuhan tenaga kerja dan optimalisasi human capital pada Unit Kerja dan anak Perusahaan khususnya untuk karyawan Telkom dalam penugasan entitas di luar telkom (EDLT)
-7 Memberikan feedback improvement kebijakan pengelolaan human capital berdasarkan hasil evaluasi pengelolaan human capital di Unit Kerja
-8 Menyusun dan mengevaluasi micro workforce planning yang mengacu pada dokumen master plan HCM
-9 Melakukan pengelolaan job management dalam hal memastikan tersedianya job profile dan job requirement untuk level nonmanagerial dengan mempertimbangkan role and responsibility dari kebijakan organisasi yang berlaku
-10 Melakukan koordinasi terkait talent and leadership development
-11 Memastikan identifikasi, updating, dan pemeliharaan data klasifikasi talent
-12 Menyediakan data untuk pelaksanaan dan penyelesaian penilaian kompetensi (competency assessment)
-13 Melakukan monitoring dan memberi masukan terkait program culture dan employee engagement
-14 Memastikan tersedianya strategi dan perencanaan atas program people transition lingkup Telkom Group
-15 Melakukan advisory terkait rumusan kebijakan dan mekanisme pengelolaan union relation dan industrial relation
-16 Memastikan keselarasan individual performance management dengan kontrak manajemen mengacu pada Unit Kerja yang dilayaninya
-
-    📌 Posisi Bawahan yang tersedia:
-    MANAGER HC INTEGRATED SOLUTION AND DEVELOPMENT I
-MANAGER HC INTEGRATED SOLUTION AND DEVELOPMENT II
-MANAGER HC INTEGRATED SOLUTION AND DEVELOPMENT III
-
-    Hasil akhir harus berupa JSON array sesuai format yang sudah dijelaskan.
+def json_to_csv(json_file_path, csv_file_path):
     """
-    response = apilogy_run.generate_response(system_prompt, user_prompt)
-    # response = groq_run.generate_response(system_prompt, user_prompt)
-    # response = deepseek_run.generate_response(system_prompt, user_prompt)
-    print(response)
+    Mengubah file JSON menjadi CSV.
+    File JSON harus berupa list of objects (array of dict).
+    """
 
-    # ---- SIMPAN OTOMATIS KE FILE JSON ----
-    filename = f"response_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.json"
+    # Baca file JSON
+    with open(json_file_path, 'r', encoding='utf-8') as json_file:
+        data = json.load(json_file)
 
-    try:
-        # coba parse kalau hasilnya valid JSON string
-        parsed = json.loads(response)
-    except (TypeError, json.JSONDecodeError):
-        # kalau bukan JSON valid, simpan sebagai string mentah
-        parsed = {"raw_response": str(response)}
+    # Pastikan JSON berupa list
+    if not isinstance(data, list):
+        raise ValueError("File JSON harus berupa list of objects!")
 
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(parsed, f, ensure_ascii=False, indent=2)
+    # Ambil semua key dari elemen pertama sebagai header CSV
+    headers = list(data[0].keys())
 
-    print(f"\n✅ Output berhasil disimpan ke file: {filename}")
+    # Tulis ke file CSV
+    with open(csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(data)
 
-if __name__ == "__main__":
-    test_deepseek()
+    print(f"✅ File CSV berhasil dibuat di: {csv_file_path}")
+
+
+# 🎯 Contoh penggunaan:
+json_to_csv('djm_final_network.json', 'djm_final_network.csv')
