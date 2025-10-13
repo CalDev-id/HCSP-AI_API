@@ -52,24 +52,24 @@ TOOLS_FOR_AGENT = [
 ]
 
 # --- LLM & AGENT ---
-API_KEY_PATH = "config/secrets/api_key.txt"
-if not os.path.exists(API_KEY_PATH):
-    raise FileNotFoundError(f"Buat file {API_KEY_PATH} yang berisi GROQ API key Anda")
-with open(API_KEY_PATH, "r") as f:
-    os.environ["GROQ_API_KEY"] = f.read().strip()
+import os
+from dotenv import load_dotenv
 
+# Load .env file
+load_dotenv()
 
 def make_llm():
-    api_key = os.environ.get("GROQ_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("GROQ_API_KEY belum di-set dari file.")
-    
+        raise ValueError("GROQ_API_KEY belum di-set di file .env")
+
     return ChatGroq(
         api_key=api_key,
         model="llama-3.3-70b-versatile",
         temperature=0,
         max_tokens=1024
     )
+
 
 def get_agent(memory: ConversationBufferMemory):
     llm = make_llm()

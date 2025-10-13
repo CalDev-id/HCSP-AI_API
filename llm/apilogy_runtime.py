@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import time
 from dotenv import load_dotenv
 
 
@@ -8,7 +9,6 @@ class ApilogyRunTime:
     def __init__(self):
         load_dotenv()
         self.api_key = os.getenv("APILOGY_LLM_KEY")
-
         self.url = "https://telkom-ai-dag.api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
 
     def generate_response(self, system_prompt: str, user_prompt: str):
@@ -29,18 +29,31 @@ class ApilogyRunTime:
             "x-api-key": self.api_key
         }
 
-        try:
-            response = requests.post(self.url, headers=headers, json=payload, timeout=100)
-            response.raise_for_status()
-            response = response.json()
+        max_retries = 3
+        delay_seconds = 5
 
-            if response and "choices" in response:
-                response = response["choices"][0]["message"]["content"].strip()
-                return response
-            else:
-                print("Tidak ada respons dari AI.")
-                return ""
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = requests.post(self.url, headers=headers, json=payload, timeout=100)
+                
+                # Cek status code
+                if response.status_code == 200:
+                    data = response.json()
+                    if data and "choices" in data:
+                        content = data["choices"][0]["message"]["content"].strip()
+                        return content
+                    else:
+                        print("⚠️ Tidak ada respons dari AI.")
+                        return ""
+                else:
+                    print(f"⚠️ Request gagal (status {response.status_code}). Percobaan ke-{attempt}/3.")
+            
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Error saat request (percobaan ke-{attempt}/3): {e}")
 
-        except requests.exceptions.RequestException as e:
-            print(f"Error: {e}")
-            return ""
+            if attempt < max_retries:
+                print(f"⏳ Menunggu {delay_seconds} detik sebelum mencoba lagi...")
+                time.sleep(delay_seconds)
+
+        print("❌ Gagal mendapatkan respons setelah 3 percobaan.")
+        return ""
