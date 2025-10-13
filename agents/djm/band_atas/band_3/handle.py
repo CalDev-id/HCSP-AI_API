@@ -18,7 +18,7 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
     """)
     for row in rows_band_3[:3]:
         job_id = row["jobid"]
-        nama_posisi = row["nama_posisi"]
+        nama_posisi = (row["nama_posisi"] or "").strip()
         band_posisi = row["band_posisi"]
         atasan = row["atasan"]
 
@@ -26,17 +26,24 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
             mission_statement = job_responsibilities = job_performance = job_authorities = "Nama posisi kosong"
         else:
             retrieve_data = await retrieve_position(user_id, atasan)
-
-            jr_kepake_rows = await conn.fetch(
-                f'SELECT job_responsibilities FROM jr_kepake_{user_id} WHERE atasan ILIKE $1',
-                atasan
-            )
-
-            jr_kepake = [row["job_responsibilities"] for row in jr_kepake_rows] if jr_kepake_rows else None
-
-
             mission_statement = ms_agent(nama_posisi)
-            job_responsibilities = jr_agent(nama_posisi, band_posisi, retrieve_data, jr_kepake)
+
+            nama_posisi_normalized = "".join(nama_posisi.lower().split())
+
+            if "headoftelkom" in nama_posisi_normalized:
+                job_responsibilities = "Headoftelkom tidak memiliki job responsibilities."
+                print(nama_posisi_normalized)
+            elif "accountmanager" in nama_posisi_normalized:
+                job_responsibilities = "Account Manager memiliki job responsibilities yang ditentukan secara terpisah."
+                print(nama_posisi_normalized)
+            else:
+                jr_kepake_rows = await conn.fetch(
+                    f"SELECT job_responsibilities FROM jr_kepake_{user_id} WHERE atasan ILIKE $1",
+                    atasan
+                )
+                jr_kepake = [r["job_responsibilities"] for r in jr_kepake_rows] if jr_kepake_rows else None
+                job_responsibilities = jr_agent(nama_posisi, band_posisi, retrieve_data, jr_kepake)
+
             job_performance = jp_agent(nama_posisi, band_posisi, job_responsibilities)
             job_authorities = ja_agent(nama_posisi, band_posisi, retrieve_data, job_responsibilities, mission_statement)
 
@@ -46,6 +53,7 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
                 ON CONFLICT (atasan) DO UPDATE
                 SET job_responsibilities = jr_kepake_{user_id}.job_responsibilities || E'\n' || EXCLUDED.job_responsibilities
             """, job_id, atasan, job_responsibilities)
+
 
 
         result = {
@@ -70,3 +78,5 @@ async def process_band_3(conn, table_temp, rows_band_3, user_id):
         results.append(result)
         
     return results
+
+

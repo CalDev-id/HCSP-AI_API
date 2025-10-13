@@ -206,34 +206,71 @@
 # # Contoh penggunaan
 # csv_to_json('djm_result_network.csv', 'djm_result_network.json')
 
+# import json
+# import csv
+
+# def json_to_csv(json_file_path, csv_file_path):
+#     """
+#     Mengubah file JSON menjadi CSV.
+#     File JSON harus berupa list of objects (array of dict).
+#     """
+
+#     # Baca file JSON
+#     with open(json_file_path, 'r', encoding='utf-8') as json_file:
+#         data = json.load(json_file)
+
+#     # Pastikan JSON berupa list
+#     if not isinstance(data, list):
+#         raise ValueError("File JSON harus berupa list of objects!")
+
+#     # Ambil semua key dari elemen pertama sebagai header CSV
+#     headers = list(data[0].keys())
+
+#     # Tulis ke file CSV
+#     with open(csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
+#         writer = csv.DictWriter(csv_file, fieldnames=headers)
+#         writer.writeheader()
+#         writer.writerows(data)
+
+#     print(f"✅ File CSV berhasil dibuat di: {csv_file_path}")
+
+
+# # 🎯 Contoh penggunaan:
+# json_to_csv('djm_final_network.json', 'djm_final_network.csv')
+
+
+import pandas as pd
 import json
-import csv
 
-def json_to_csv(json_file_path, csv_file_path):
-    """
-    Mengubah file JSON menjadi CSV.
-    File JSON harus berupa list of objects (array of dict).
-    """
+def xlsx_to_json(xlsx_path, json_path):
+    # Baca file Excel (sheet pertama saja)
+    df = pd.read_excel(xlsx_path)
 
-    # Baca file JSON
-    with open(json_file_path, 'r', encoding='utf-8') as json_file:
-        data = json.load(json_file)
+    # Ganti NaN dengan string kosong agar valid di JSON
+    df = df.fillna("")
 
-    # Pastikan JSON berupa list
-    if not isinstance(data, list):
-        raise ValueError("File JSON harus berupa list of objects!")
+    # Mapping nama kolom lama → baru
+    column_mapping = {
+        "job_id": "jobId",
+        "nama_job": "nama_posisi",
+        "ms": "mission_statement",
+        "jr": "job_responsibilities",
+        "jpi": "job_performance",
+        "ja": "job_authorities"
+    }
 
-    # Ambil semua key dari elemen pertama sebagai header CSV
-    headers = list(data[0].keys())
+    # Ubah nama kolom sesuai mapping
+    df = df.rename(columns=column_mapping)
 
-    # Tulis ke file CSV
-    with open(csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=headers)
-        writer.writeheader()
-        writer.writerows(data)
+    # Konversi ke list of dict
+    data = df.to_dict(orient="records")
 
-    print(f"✅ File CSV berhasil dibuat di: {csv_file_path}")
+    # Simpan ke file JSON
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+    print(f"✅ File JSON berhasil dibuat: {json_path}")
 
 
-# 🎯 Contoh penggunaan:
-json_to_csv('djm_final_network.json', 'djm_final_network.csv')
+# Contoh pemanggilan
+xlsx_to_json("djm_result_network.xlsx", "djm_result_network.json")
