@@ -1,8 +1,13 @@
 import httpx
 from typing import List, Dict
-from utils.embedding import API_KEY
 from pypdf import PdfReader, PdfWriter  # pakai pypdf, bukan PyPDF2
 from io import BytesIO
+import os
+from dotenv import load_dotenv
+
+# Load .env dan ambil API key
+load_dotenv()
+API_KEY = os.getenv("APILOGY_LMM_KEY")
 
 OCR_URL = "https://telkom-ai-dag.api.apilogy.id/OCR_Document_Based/0.0.5/ocr/bbox/pdf"
 

@@ -1,14 +1,14 @@
 import os
 import requests
 import json
+from dotenv import load_dotenv
+
 
 class ApilogyRunTime:
     def __init__(self):
-        # baca api_key dari file
-        with open("config/secrets/apilogy_LLM.txt", "r") as f:
-            os.environ["APILOGY_API_KEY"] = f.read().strip()
+        load_dotenv()
+        self.api_key = os.getenv("APILOGY_LLM_KEY")
 
-        self.api_key = os.environ.get("APILOGY_API_KEY")
         self.url = "https://telkom-ai-dag.api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
 
     def generate_response(self, system_prompt: str, user_prompt: str):

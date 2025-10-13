@@ -6,7 +6,7 @@ from utils import postgredb_apilogy
 async def extract_xlsx(file: UploadFile):
     try:
         content = await file.read()
-        wb = openpyxl.load_workbook(BytesIO(content))
+        wb = openpyxl.load_workbook(BytesIO(content), data_only=True)
         sheet = wb.active
         data = [list(row) for row in sheet.iter_rows(min_row=2, values_only=True)]
         print("template file berhasil di baca")
