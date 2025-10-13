@@ -1,110 +1,83 @@
-
 from typing import List
 from llm.apilogy_runtime import ApilogyRunTime
+import json
 
-def jr_agent(nama_posisi: str, retrieve_data: List[dict]):
+def jr_agent(nama_posisi: str, retrieve_data: List[dict], field_name: str = "job_responsibilities"):
     apilogy_run = ApilogyRunTime()
 
     if not retrieve_data:
-      context_text = "Tidak ada konteks pasal relevan."
+        context_text = "Tidak ada konteks relevan."
     else:
-      context_parts = []
-      for record in retrieve_data:
-          jobId = record.get("jobId", "")
-          nama_posisi = record.get("nama_posisi", "")
-          mission_statement = record.get("mission_statement", "")
-          job_responsibilities = record.get("job_responsibilities", "")
-          job_performance = record.get("job_performance", "")
-          job_authorities = record.get("job_authorities", "")
-          context_parts.append(f"Job ID: {jobId}\nNama Posisi: {nama_posisi}\nMission Statement: {mission_statement}\nJob Responsibilities: {job_responsibilities}\nJob Performance: {job_performance}\nJob Authorities: {job_authorities}\n")
-        
-      context_text = "\n\n".join(context_parts)
+        context_parts = []
+        for record in retrieve_data:
+            field_value = record.get(field_name, "")
+            if field_value:
+                context_parts.append(field_value.strip())
 
+        context_text = "\n\n".join(context_parts) if context_parts else f"Tidak ada data pada field '{field_name}'."
+    print(nama_posisi)
+    print("--------------------------------")
+    print(context_text)
     user_prompt = f"""
-Buatkan Job Responsibilities untuk posisi berikut :
 
-Nama Posisi : {nama_posisi}
-perlu diingat singkatan berikut, perluas singkatan yang ada di nama posisi ! :
-1. SGM = senior general Manager
-2. SM = senior manager
-3. MGR = manager
-4. OFF = officer
-
-Outputnya langsung berupa list item dari JR tanpa kata pengantar, tanpa penanda seperti (-/*) dan tidak dibold !
-
-    """
-
-    system_prompt = f"""
-Peranmu
-Kamu adalah konsultan Human Capital berpengalaman. Tugasmu adalah membantu membuat Job Responsibilities (JR). 
-
-=====================================================
-Reasoning (Langkah Berpikir)
-1. Ambil konteks → gunakan data dari context database dibawah untuk memahami posisi, unit kerja, dan * aktifitas utama posisi tersebut *. cari dalam tools context database dibawah aktivitas utama posisi/atasan posisi tersebut. bukan wewenang melainkan aktivitas utama. wajib ikuti cara cari nama posisi lengkapnya beserta singkatannya di context database dibawah, berikut contoh mencari key di context database:
-"aktivitas utama + [nama posisi]" = 
-"aktivitas utama senior general manager (sgm)"
-
-2. Identifikasi level band posisi:
-   - BP 1 & 2 → Managerial Tinggi
-   - BP 3 → Managerial
-   - BP 3 Non-Managerial & BP4–6 → Operasional
-   - Engine Team → Spesialis Analisis
-3. Tentukan lingkup peran → pahami aktivitas inti, produk/fungsi yang ditangani, relasi antar unit.
-4. Buat JR dengan rumus:
-   JR = Kata Kerja + Fungsi/Aktivitas/Produk
-   - Gunakan kata kerja sesuai pedoman band.
-   - SGM dan SM → ** JANGAN AMBIL DARI 'get_prev_jr' ** melainkan ambil langsung dari aktivitas utama posisi tersebut dari context database dibawah, disalin SEMUA dan tidak diubah !.
-   - Posisi lain seperti MGR/OFF/ENGINE TEAM → ** WAJIB diambil dari 'get_prev_jr' dahulu ** untuk posisi atasannya yang relevan diturunkan dari posisi atasnya, lalu dinalar.
-   - Pastikan tugas kepala unit diturunkan jadi operasional untuk level bawah.
-5. Validasi prinsip JR → pastikan JR:
-   - Faktual, spesifik, aktual, relatif tetap.
-   - Mencerminkan hasil utama, bukan sekadar proses.
-   - Terukur keberhasilannya.
-6. Susun hasil → gabungkan 3 General JR wajib + SEMUA Specific JR sesuai band posisi dan posisinya.
-
-=====================================================
-Act (Output yang Harus Dihasilkan)
-Hasilkan daftar Job Responsibilities dalam format bullet point:
-
-- General JR (wajib, selalu 3 butir pertama):
-  - Melaksanakan implementasi aktivitas-aktivitas budaya organisasi.
-  - Membangun relasi dengan unit kerja lain dan key person (internal/eksternal).
-  - Memastikan kompetensi yang dipersyaratkan bagi pekerjaan, dengan mempelajari keahlian/pengetahuan yang sesuai.
-
-- SEMUA Specific JR (berdasarkan band & kata kerja pedoman):
-  [Specific Responsibility 1]
-  [Specific Responsibility 2]
-  [Specific Responsibility 3]
-  … (sesuai kebutuhan)
-
-=====================================================
-Pedoman Kata Kerja (per Band)
-- BP 1 & 2 Managerial → Menyetujui, Mengarahkan, Merencanakan, Mengembangkan, Menentukan, Memberi otorisasi, dll.
-- BP 3 Managerial → Mencapai, Memastikan, Mengevaluasi, Mengidentifikasi, Memantau, Meningkatkan, dll.
-- BP 3 Non-Managerial & BP4–6 → Membandingkan, Mengoperasikan, Melaksanakan, Menyajikan, Menghasilkan, Memberitahukan, dll.
-- Engine Team → Menganalisa, Menilai, Memungkinkan, Meramalkan, Merekomendasikan, Mengusulkan, dll.
-
-=====================================================
-Contoh Alur (Singkat)
-- SGM (Band I/II) → JR langsung COPY semua dari aktivitas posisi yang diambil dari context database dibawah.
-- SM (Band II) → JR langsung COPY semua dari aktivitas posisi yang diambil dari context database dibawah.
-- MGR (Band III) → lihat dari SM ** WAJIB ambil dari tools 'get_prev_jr' ** strukturisasi JR nya sesuai aturan/rumus → diturunkan ke Officer.
-- Officer 1 (Band IV) → ** WAJIB ambil tugas MGR dengan tools 'get_prev_jr'** lalu strukturisasi menjadi mengelola, melakukan identifikasi, menyediakan program (turunan dari Manager).
-- Officer 2/3 (Band V/VI) → ** WAJIB ambil tugas MGR dengan tools 'get_prev_jr' ** lalu strukturisasi menjadi mengelola evaluasi performa, melaksanakan pelaporan progress (turunan dari Manager).
-
-
-gunakan context database ini : 
-{context_text}
+Buatkan minimal 1 Job Responsibilities (JR) untuk tiap posisi berikut, 
+dan pastikan semua tugas atasan di bawah ini telah habis terbagi ke posisi bawahannya secara utuh dan relevan. 
+Jumlah total JR terbagi ke posisi bawahan wajib sama dengan jumlah tugas atasan yang diberikan diawal, 
+tidak boleh kurang dan tidak boleh lebih. Nama Posisi bawahan: {nama_posisi}; 
+Berikut daftar tugas dari atasan (wajib semuanya terbagi tanpa dipotong narasinya):{context_text}.
+Gunakan format JSON compacted. Poin JR boleh berbentuk bullet (•) jika diperlukan.
 """
+
+    system_prompt = """
+Tugasmu adalah membuat Job Responsibilities (JR). Ikuti aturan ketat berikut:
+
+1. Rumus JR = Kata Kerja + Fungsi/ Aktivitas/ Produk.
+2. DILARANG KERAS memotong, meringkas, menambah, atau mengubah isi narasi asli tugas atasan.
+   Kamu hanya boleh mengganti kata kerja di bagian depan menjadi kata kerja band 4, 5, 6, dan Senior Officer (SO).
+3. Satu tugas atasan = satu JR utuh.
+   Tidak boleh satu tugas dipecah menjadi dua JR, dan tidak boleh dua tugas digabung menjadi satu JR.
+4. Semua tugas atasan HARUS HABIS TERDISTRIBUSI ke posisi paling relevan.
+   Tidak boleh ada satu pun tugas yang tersisa.
+   Jika jumlah JR ≠ jumlah tugas atasan, hasilmu dianggap SALAH dan harus diperbaiki sampai jumlahnya sama persis.
+5. Setelah selesai membagi, hitung total JR di seluruh posisi dan pastikan totalnya = jumlah tugas atasan.
+6. Pastikan relevansi kuat antara nama posisi dan aktivitas utama dari tugas tersebut.
+7. Gunakan format JSON compacted berikut (tanpa tambahan teks di luar JSON):
+
+[
+  {
+    "posisi": "nama posisi",
+    "jr": "• Job Responsibility 1 \\n • Job Responsibility 2 \\n • Job Responsibility 3"
+  },
+  ...
+]
+
+8. Jangan menambahkan reasoning, catatan, atau teks di luar struktur JSON.
+9. Pedoman Kata Kerja Band 4, 5, 6, dan Senior Officer (SO):
+   (Memeriksa, Membandingkan, Menyebarkan, Mengumpulkan, Menginformasikan,
+   Memberitakan, Mengadakan, Memperoleh, Mengoperasikan, Melaksanakan,
+   Menyajikan, Memproses, Menghasilkan, Menyampaikan, Menyediakan).
+"""
+
+
     response = apilogy_run.generate_response(system_prompt, user_prompt)
 
     if response:
         job_responsibilities = response.strip()
-        
+
         job_responsibilities = job_responsibilities.replace("- ", "• ")
-        job_responsibilities = job_responsibilities.replace("'", "").replace("[", "").replace("]", "")
-        
-        return job_responsibilities
+
+        try:
+            # Kalau AI mengembalikan JSON string
+            print("--------------------------------------")
+            print(job_responsibilities)
+            parsed = json.loads(job_responsibilities)
+            if isinstance(parsed, list):
+                return parsed
+            elif isinstance(parsed, dict):
+                return [parsed]
+        except json.JSONDecodeError:
+            # Kalau tidak bisa di-parse jadi JSON, bungkus jadi list
+            return [{"posisi": "Unknown", "jr": job_responsibilities}]
     else:
         print("Tidak ada respons dari AI.")
         return "Tidak ada respons dari AI."

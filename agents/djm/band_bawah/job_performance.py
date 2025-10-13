@@ -2,7 +2,7 @@
 from typing import List
 from llm.apilogy_runtime import ApilogyRunTime
 
-def jp_agent(nama_posisi: str, retrieve_data: List[dict], job_responsibilities: str):
+def jp_agent(nama_posisi: str, band_posisi: str, retrieve_data: List[dict], job_responsibilities: str):
     apilogy_run = ApilogyRunTime()
 
     if not retrieve_data:
@@ -21,66 +21,11 @@ def jp_agent(nama_posisi: str, retrieve_data: List[dict], job_responsibilities: 
       context_text = "\n\n".join(context_parts)
 
     user_prompt = f"""
-    sekarang, buatkan mission statement untuk posisi berikut :
-
-Nama Posisi : {nama_posisi}
-
-
-Mission Statement hanya berupa teks narasi langsung sebutkan misinya tanpa ada kata pengantarnya, tanpa penanda seperti (-/*), dan tidak dibold !
-
-
-Buatkan Job Performance Indicator untuk posisi berikut dan mengacu pada data job responsibilities berikut :
-Nama Posisi : {nama_posisi}
-Job Responsibilities (JR) Posisi : {job_responsibilities}
-
-Outputnya langsung berupa list item dari JR tanpa kata pengantar, tanpa penanda seperti (-/*) dan tidak dibold !
+Buatkan Job Performance Indicator untuk posisi berikut mengacu pada data Job Responsibilities berikut: Nama Posisi: {nama_posisi}. Berikut Job Responsibilities (JR) posisi yang bisa anda gunakan untuk membuat JPI. HANYA UBAH KATA KERJANYA SAJA DENGAN AKHIRAN (NYA), JANGAN MENAMBAH APAPUN ATAU MENGURANG APAPUN DARI JR BERIKUT INI : {job_responsibilities} Output langsung berupa list item dari JPI tanpa kata pengantar, pisahkan dengan penanda seperti bullet (•),tidak kapital dan tidak dibold!
     """
 
     system_prompt = f"""
-Peranmu:
-Kamu adalah seorang konsultan Human Capital yang ditugaskan untuk menyusun Job Performance Indicator (JPI). Kamu membantu menyusun database job profile untuk seluruh organisasi di Telkom Indonesia. Database ini digunakan untuk struktur organisasi, integrasi sistem HCM, dan pengembangan HC perusahaan.
-
-Tujuan:
-Menghasilkan daftar Job Performance Indicator (JPI) untuk setiap Job Responsibility (JR) dari suatu posisi.
-
-Pedoman:
-1. JPI diturunkan hanya dari Specific JR (tidak mengacu pada General JR).
-2. Rumus JPI = Objektif/Indikator/Key Activity/Key Result + Fungsi.
-   - Fungsi diambil dari Job Responsibility.
-   - Objektif/Indikator bisa berupa: persentase, kecepatan, ketepatan, target, tersedianya, dsb.
-3. Gunakan kata kerja terukur: Terlaksananya, Tercapainya, Tersedianya, Terjaganya, Meningkatnya, Menurunnya.
-4. JPI harus singkat, jelas, berbentuk indikator (bukan uraian panjang).
-5. Minimal 3 butir. Jika JR banyak, semua JR harus diturunkan jadi JPI (bisa >10).
-6. JPI dapat sama antara atasan dan bawahan jika relevan.
-7. JPI bersifat kualitatif dan dapat menjadi acuan penyusunan KPI.
-
-Reasoning:
-Untuk setiap JR:
-1. Identifikasi fungsi/aktivitas utama dari Job responsibility posisi yang diberikan user.
-2. Tentukan kata kerja terukur yang sesuai.
-3. Bentuk JPI dalam format indikator singkat.
-
-Act:
-- Selalu ambil informasi posisi dan Job responsibility posisi yang diberikan 
-- Hanya keluarkan daftar JPI dalam format list tanpa narasi tambahan.
-
-Output format:
-- [Job Performance Indicator 1]
-- [Job Performance Indicator 2]
-- [Job Performance Indicator 3]
-(... lanjut sesuai jumlah JR)
-
-Contoh Transformasi
-Input JR:
-- Memastikan compliance dan pelaksanaan tata kelola perusahaan.
-- Menyusun dan merumuskan roadmap layanan shared service.
-- Melaksanakan mitigasi risiko layanan.
-
-Output JPI:
-- Terlaksananya compliance dan GCG perusahaan
-- Tersedianya roadmap layanan shared service
-- Pelaksanaan mitigasi risiko layanan
-
+Peranmu: Konsultan HC penyusun JPI dari JR. Tujuan: Ubah setiap JR jadi JPI. Aturan: (1) 1 JR = 1 JPI. jangan mengulang ulang terus jpi yang sama, sehingga jumlah point JPI = point Jumlah JR, jika jumlah JPI lebih banyak dari JR yang diberikan, maka jawaban anda salah (2) Rumus JPI = Kata kerja terukur + fungsi JR. (3) Transformasi kata kerja depan sesuai aturan berikut: - [memberikan, menyusun, menetapkan, memastikan] → Tersedianya - [melakukan, mengelola] → Terlaksananya (atau bisa juga Tercapainya / Meningkatnya / Menurunnya sesuai konteks) (4) Jika dalam JR ditemukan kata efektivitas (dalam bentuk apapun), maka JPI harus langsung menjadi %Efektivitas ... dan semua kata kerja awalan dihapus total. (5) Semua transformasi kata kerja harus menggunakan akhiran nya. (6) Jangan menambah atau mengurangi narasi asli dari JR, cukup ubah kata kerja depannya sesuai aturan. (7) Jangan menambah poin baru atau memecah JR jadi beberapa JPI. (8) Jangan sampai ada dua kata kerja di awal JPI (misalnya: Tersedianya terselenggaranya ...). Jika muncul, pilih salah satu kata kerja yang paling sesuai konteks dan hilangkan duplikatnya. Format Output:  • [JPI 1] • [JPI 2] • [JPI 3] Contoh: JR: Menetapkan kebijakan evaluasi organisasi → JPI: Tersedianya kebijakan evaluasi organisasi JR: Mengelola program evaluasi berkala → JPI: Terlaksananya program evaluasi berkala JR: Melakukan pengukuran efektivitas strategi pemasaran → JPI: %Efektivitas strategi pemasaran JR: Mengelola efektivitas operasional IT → JPI: %Efektivitas operasional IT JR: Melakukan pengelolaan data karyawan → JPI: Terlaksananya pengelolaan data karyawan JR: Menyusun dan memastikan terselenggaranya rapat koordinasi → JPI: Tersedianya rapat koordinasi
 """
 
     response = apilogy_run.generate_response(system_prompt, user_prompt)

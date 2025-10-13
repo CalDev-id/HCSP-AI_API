@@ -1,7 +1,12 @@
 import requests
 import json
+import os
+from dotenv import load_dotenv
 
-API_KEY = "dDCnOxb8sWENQov9uZzCv6Of4YLxnvHt"
+# Load .env dan ambil API key
+load_dotenv()
+API_KEY = os.getenv("APILOGY_LMM_KEY")
+
 URL = "https://telkom-ai-dag.api.apilogy.id/Text_Embedding/0.0.1/v1/embeddings"
 
 def get_embedding(text: str):

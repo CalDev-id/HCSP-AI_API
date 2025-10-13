@@ -4,13 +4,13 @@ import base64
 import requests
 import json
 import os
+from dotenv import load_dotenv
 
 API_URL = "https://telkom-ai-dag.api.apilogy.id/LargeMultimodalModel/0.0.2/lmm/chat/completions"
 
-with open("config/secrets/apilogy_LMM.txt", "r") as f:
-            os.environ["APILOGY_API_KEY"] = f.read().strip()
-
-api_key = os.environ.get("APILOGY_API_KEY")
+# Load .env dan ambil API key dari environment
+load_dotenv()
+api_key = os.getenv("APILOGY_LMM_KEY")
 
 async def ocr_pdf_apilogy(upload_file) -> list[dict]:
     pdf_bytes = await upload_file.read()
@@ -31,7 +31,11 @@ async def ocr_pdf_apilogy(upload_file) -> list[dict]:
                     "content": [
                         {
                             "type": "text",
-                            "text": f"Ekstrak teks dari halaman berikut, lalu rapikan: - output langsung semua teks dokumen berupa teks yang telah diekstrak dari file tidak perlu kata pengantar !  - jangan hapus apapun untuk menjaga orisinalitas dari dokumen"
+                            "text": (
+                                "Ekstrak teks dari halaman berikut, lalu rapikan: "
+                                "- output langsung semua teks dokumen berupa teks yang telah diekstrak dari file tidak perlu kata pengantar! "
+                                "- jangan hapus apapun untuk menjaga orisinalitas dari dokumen"
+                            )
                         },
                         {
                             "type": "image_url",

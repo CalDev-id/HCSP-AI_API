@@ -7,3 +7,4 @@ apilogy_LLM.txt
 apilogy_LMM.txt
 __pycache__
 /__pycache__
+.env

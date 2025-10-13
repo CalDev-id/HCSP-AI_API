@@ -2,15 +2,15 @@ import os
 import requests
 import json
 import re
+from dotenv import load_dotenv
 
 
 class DeepseekRunTime:
     def __init__(self):
-        # baca api_key dari file
-        with open("config/secrets/apilogy_LLM.txt", "r") as f:
-            os.environ["APILOGY_API_KEY"] = f.read().strip()
+        # Load .env dan ambil API key dari environment
+        load_dotenv()
+        self.api_key = os.getenv("APILOGY_LLM_KEY")
 
-        self.api_key = os.environ.get("APILOGY_API_KEY")
         self.url = "https://telkom-ai-dag.api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
 
     def generate_response(self, system_prompt: str, user_prompt: str):
@@ -47,8 +47,6 @@ class DeepseekRunTime:
         except requests.exceptions.RequestException as e:
             print(f"Error: {e}")
             return ""
-
-
 
 
 def clean_response(text: str) -> str:

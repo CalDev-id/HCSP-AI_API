@@ -24,7 +24,7 @@ async def process_band_1_2(conn, table_temp, rows_band_1_2, user_id):
         metadata_dict[str(r["id"])] = meta
 
     results = []
-    for row in rows_band_1_2[:2]:
+    for row in rows_band_1_2:
         job_id = row["jobid"]
         nama_posisi = row["nama_posisi"]
         band_posisi = row["band_posisi"]

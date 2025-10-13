@@ -61,11 +61,22 @@ async def handle_create_djm(user_id: str, pr_file: UploadFile, template_file: Up
             """
             rows_band_1_2 = await conn.fetch(query_band_1_2)
 
+            # query_band_3 = f"""
+            #     SELECT jobid, nama_posisi, band_posisi, atasan 
+            #     FROM "{table_excel}"
+            #     WHERE band_posisi = 'III'
+            # """
+            # rows_band_3 = await conn.fetch(query_band_3)
             query_band_3 = f"""
-                SELECT jobid, nama_posisi, band_posisi, atasan 
+                SELECT jobid, nama_posisi, band_posisi, atasan
                 FROM "{table_excel}"
-                WHERE band_posisi = 'III'
+                WHERE (
+                    band_posisi = 'III'
+                    OR LOWER(nama_posisi) LIKE '%head of telkom%'
+                )
+                AND LOWER(nama_posisi) NOT LIKE '%account manager%'
             """
+
             rows_band_3 = await conn.fetch(query_band_3)
 
             djm_results = []
