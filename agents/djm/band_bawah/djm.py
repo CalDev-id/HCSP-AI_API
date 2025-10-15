@@ -36,6 +36,7 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
                 WHERE (
                     band_posisi IN ('IV', 'V', 'VI')
                     OR LOWER(nama_posisi) LIKE '%account manager%'
+                    OR LOWER(nama_posisi) LIKE '%senior officer%'
                 )
                 AND LOWER(nama_posisi) NOT LIKE '%head of telkom%'
             """
