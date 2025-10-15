@@ -14,9 +14,6 @@ def jr_hotda_agent(nama_posisi: str, retrieve_data: List[dict]):
           context_parts.append(f"{job_responsibilities}\n\n")
         
       context_text = "\n\n".join(context_parts)
-    print(nama_posisi)
-    print("--------------------------------")
-    print(context_text)
 
     user_prompt = f"""
 
