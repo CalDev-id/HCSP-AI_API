@@ -5,7 +5,7 @@ import time
 from dotenv import load_dotenv
 
 
-class ApilogyRunTime:
+class CoderRunTime:
     def __init__(self):
         load_dotenv()
         self.api_key = os.getenv("APILOGY_LLM_KEY")
