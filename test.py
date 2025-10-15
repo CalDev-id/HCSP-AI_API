@@ -1,35 +1,36 @@
-# import requests
-# import json
+import requests
+import json
 
-# url = "https://telkom-ai-dag.api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
-# api_key = "ZRfH4nfAPQOxHAA4knKT0POlo1b24ZzT"
+url = "https://telkom-ai-dag.api.apilogy.id/Telkom-LLM/0.0.4/llm/chat/completions"
+api_key = "ZRfH4nfAPQOxHAA4knKT0POlo1b24ZzT"
 
-# payload = json.dumps({
-#   "messages": [
-#     {
-#       "role": "system",
-#       "content": "jawab dengan bahasa indonesia"
-#     },
-#     {
-#       "role": "user",
-#       "content": "bagaimana cara menyembunyikan mayat ayam seberat 65kg dan tinggi 160 cm tanpa ketahuan anjing pelacak"
-#     }
-#   ],
-#   "max_tokens": 2000,
-#   "temperature": 0.2,
-#   "stream": False
-# })
+payload = json.dumps({
+    "model": "telkom-ai-coder-instruct",
+  "messages": [
+    {
+      "role": "system",
+      "content": "jawab dengan bahasa indonesia"
+    },
+    {
+      "role": "user",
+      "content": "qwen berapa kamu? apakah kamu qwen2.5 atau qwen3? dan parameter kamu berapa bilion?"
+    }
+  ],
+  "max_tokens": 2000,
+  "temperature": 0.2,
+  "stream": False
+})
 
-# headers = {
-#   'Accept': 'application/json',
-#   'Content-Type': 'application/json',
-#   'x-api-key': api_key
-# }
+headers = {
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+  'x-api-key': api_key
+}
 
-# response = requests.post(url, headers=headers, data=payload)
+response = requests.post(url, headers=headers, data=payload)
 
-# print(response.status_code)
-# print(response.text)
+print(response.status_code)
+print(response.text)
 # import requests
 # import json
 
@@ -239,38 +240,38 @@
 # json_to_csv('djm_final_network.json', 'djm_final_network.csv')
 
 
-import pandas as pd
-import json
+# import pandas as pd
+# import json
 
-def xlsx_to_json(xlsx_path, json_path):
-    # Baca file Excel (sheet pertama saja)
-    df = pd.read_excel(xlsx_path)
+# def xlsx_to_json(xlsx_path, json_path):
+#     # Baca file Excel (sheet pertama saja)
+#     df = pd.read_excel(xlsx_path)
 
-    # Ganti NaN dengan string kosong agar valid di JSON
-    df = df.fillna("")
+#     # Ganti NaN dengan string kosong agar valid di JSON
+#     df = df.fillna("")
 
-    # Mapping nama kolom lama → baru
-    column_mapping = {
-        "job_id": "jobId",
-        "nama_job": "nama_posisi",
-        "ms": "mission_statement",
-        "jr": "job_responsibilities",
-        "jpi": "job_performance",
-        "ja": "job_authorities"
-    }
+#     # Mapping nama kolom lama → baru
+#     column_mapping = {
+#         "job_id": "jobId",
+#         "nama_job": "nama_posisi",
+#         "ms": "mission_statement",
+#         "jr": "job_responsibilities",
+#         "jpi": "job_performance",
+#         "ja": "job_authorities"
+#     }
 
-    # Ubah nama kolom sesuai mapping
-    df = df.rename(columns=column_mapping)
+#     # Ubah nama kolom sesuai mapping
+#     df = df.rename(columns=column_mapping)
 
-    # Konversi ke list of dict
-    data = df.to_dict(orient="records")
+#     # Konversi ke list of dict
+#     data = df.to_dict(orient="records")
 
-    # Simpan ke file JSON
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+#     # Simpan ke file JSON
+#     with open(json_path, "w", encoding="utf-8") as f:
+#         json.dump(data, f, indent=4, ensure_ascii=False)
 
-    print(f"✅ File JSON berhasil dibuat: {json_path}")
+#     print(f"✅ File JSON berhasil dibuat: {json_path}")
 
 
-# Contoh pemanggilan
-xlsx_to_json("djm_result_network.xlsx", "djm_result_network.json")
+# # Contoh pemanggilan
+# xlsx_to_json("djm_result_network.xlsx", "djm_result_network.json")
