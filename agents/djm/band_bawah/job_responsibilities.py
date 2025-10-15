@@ -1,9 +1,11 @@
 from typing import List
 from llm.apilogy_runtime import ApilogyRunTime
+from llm.groq_runtime import GroqRunTime
 import json
 
 def jr_agent(nama_posisi: str, retrieve_data: List[dict], field_name: str = "job_responsibilities"):
     apilogy_run = ApilogyRunTime()
+    groq = GroqRunTime()
 
     if not retrieve_data:
         context_text = "Tidak ada konteks relevan."
@@ -17,7 +19,7 @@ def jr_agent(nama_posisi: str, retrieve_data: List[dict], field_name: str = "job
         context_text = "\n\n".join(context_parts) if context_parts else f"Tidak ada data pada field '{field_name}'."
     print(nama_posisi)
     print("--------------------------------")
-    print(context_text)
+    print("jr atasan : ",context_text)
     user_prompt = f"""
 
 Buatkan minimal 1 Job Responsibilities (JR) untuk tiap posisi berikut, 
@@ -59,7 +61,8 @@ Tugasmu adalah membuat Job Responsibilities (JR). Ikuti aturan ketat berikut:
 """
 
 
-    response = apilogy_run.generate_response(system_prompt, user_prompt)
+    # response = apilogy_run.generate_response(system_prompt, user_prompt)
+    response = groq.generate_response(system_prompt, user_prompt)
 
     if response:
         job_responsibilities = response.strip()
@@ -67,16 +70,14 @@ Tugasmu adalah membuat Job Responsibilities (JR). Ikuti aturan ketat berikut:
         job_responsibilities = job_responsibilities.replace("- ", "• ")
 
         try:
-            # Kalau AI mengembalikan JSON string
             print("--------------------------------------")
-            print(job_responsibilities)
+            print("jr generated : ",job_responsibilities)
             parsed = json.loads(job_responsibilities)
             if isinstance(parsed, list):
                 return parsed
             elif isinstance(parsed, dict):
                 return [parsed]
         except json.JSONDecodeError:
-            # Kalau tidak bisa di-parse jadi JSON, bungkus jadi list
             return [{"posisi": "Unknown", "jr": job_responsibilities}]
     else:
         print("Tidak ada respons dari AI.")

@@ -178,23 +178,13 @@ def cari_database(nama_posisi, metadata_dict):
     ])
 
     user_prompt = f"""
-Sekarang cari yang benar dan ambilah satu id chunk pasal yang memuat nama posisi 
-atau paling relevan dengan posisi berikut : {nama_posisi}. 
-Berikut chunk pasal yang harus anda periksa : 
+sekarang cari yang benar dan ambilah satu id chunk pasal yang memuat nama posisi yang sedang di cari atau sangat relevan dengan posisi berikut : {nama_posisi}. 
+dan berikut chunk pasal yang harus anda periksa :
 {metadata_text}
     """
 
     system_prompt = """
-Tugas Anda adalah mengambil id pasal yang memiliki sumber pasal sangat relevan atau memuat nama posisi yang diberikan. 
-Pastikan nama jabatan atau nama posisi terdapat di sumber pasalnya, jika tidak ada maka cari yang paling relevan. 
-Berikan hanya 1 ID sumber dari chunk yang relevan. Jangan menambahkan kalimat pengantar. 
-Pahami singkatan atau akronim pada nama jabatan, misal SGM = Senior General Manager, 
-MGR = Manager, HC = Human Capital, VP = Vice President, dll. 
-Jika tidak ditemukan chunk yang relevan, cukup keluarkan 0.
-Contoh:
-INPUT : SGM HC COMMUNICATION
-Data chunk : Sumber ID : 5 || Sumber pasal : Senior General Manager HC Communication.
-OUTPUT : 5
+Tugas Anda adalah mengambil id pasal yang memiliki sumber pasal sangat relevan atau memuat nama posisi yang diberikan, pastikan nama jabatan atau nama posisi terdapat di sumber pasalnya jika tidak ada maka cari yang paling relevan. Berikan hanya 1 ID sumber dari chunk yang relevan. Jangan menambahkan kalimat pengantar. pahami singkatan atau akronim pada nama jabatan atau pada fungsi posisi misal SGM berarti senior general manager, MGR berati manager atau HC berati human capital atau VP berarti vice president, Witel artinya telkom wilayah dan seterusnya. Jika tidak ditemukan chunk yang sangat relevan, cukup keluarkan 0. Contoh cara mencari => INPUT : SGM HC COMMUNICATION. Data chunk : Sumber ID : 5 || Sumber pasal : Senior General Manager HC Communication. => OUTPUT : 5. contoh lain INPUT : CHAPTER LEADER AI & EXPERIENCE. Data chunk : Sumber ID : 12 || Sumber pasal : Chapter Leader. => OUTPUT : 12.
     """
 
     response = apilogy_run.generate_response(system_prompt, user_prompt)

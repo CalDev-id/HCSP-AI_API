@@ -27,6 +27,7 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
         await store_multiple_djm_in_db(user_id, data)
 
         pool = postgredb_apilogy.pool
+
         async with pool.acquire() as conn:
             table_name = f"excel_djm_{user_id}"
             query = f"""
@@ -38,12 +39,10 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
                 )
                 AND LOWER(nama_posisi) NOT LIKE '%head of telkom%'
             """
-
             rows = await conn.fetch(query)
 
         djm_results = await get_djm_verified(user_id)
 
-        # 🔧 Buka koneksi baru untuk CREATE TABLE
         async with pool.acquire() as conn:
             await conn.execute(f"""
                 CREATE TABLE IF NOT EXISTS jr_temp_{user_id} (
@@ -59,10 +58,6 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
             nama_posisi = row["nama_posisi"]
             band_posisi = row["band_posisi"]
             atasan = row["atasan"]
-            print(job_id)
-            print(nama_posisi)
-            print(band_posisi)
-            print("------------------------------")
 
             if not nama_posisi:
                 mission_statement = job_responsibilities = job_performance = job_authorities = "Nama posisi kosong"
@@ -74,55 +69,7 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
                 if "accountmanager" in nama_posisi_normalized:
                     job_responsibilities = jr_agent_am(nama_posisi, retrieve_data)
                 else:
-                    async with pool.acquire() as conn:
-                        existing_jr = await conn.fetchrow(f"""
-                            SELECT job_responsibilities FROM jr_temp_{user_id}
-                            WHERE nama_posisi = $1
-                        """, nama_posisi)
-
-                    if existing_jr:
-                        print("sumber : database")
-                        job_responsibilities = existing_jr["job_responsibilities"]
-                    else:
-                        async with pool.acquire() as conn:
-                            related_positions = await conn.fetch(f"""
-                                SELECT nama_posisi, band_posisi FROM excel_djm_{user_id}
-                                WHERE atasan = $1
-                                AND LOWER(nama_posisi) NOT LIKE '%head of telkom%'
-                            """, atasan)
-
-                        if related_positions:
-                            combined_positions = "; ".join(
-                                # [f"{p['nama_posisi']}, Band {p['band_posisi']}" for p in related_positions]
-                                [f"{p['nama_posisi']}" for p in related_positions]
-                            )
-
-                            jr_results_list = jr_agent(combined_positions, retrieve_data)
-                            print("sumber : llm")
-
-                            async with pool.acquire() as conn:
-                                for jr_data in jr_results_list:
-                                    nama_posisi_dari_agent = jr_data.get("posisi")
-                                    jr_text = jr_data.get("jr")
-
-                                    if nama_posisi_dari_agent and jr_text:
-                                        await conn.execute(f"""
-                                            INSERT INTO jr_temp_{user_id} (nama_posisi, atasan, job_responsibilities)
-                                            VALUES ($1, $2, $3)
-                                            ON CONFLICT (nama_posisi) DO UPDATE SET job_responsibilities = $3
-                                        """, nama_posisi_dari_agent, atasan, jr_text)
-
-                                new_jr = await conn.fetchrow(f"""
-                                    SELECT job_responsibilities FROM jr_temp_{user_id}
-                                    WHERE nama_posisi = $1
-                                """, nama_posisi)
-
-                            job_responsibilities = (
-                                new_jr["job_responsibilities"]
-                                if new_jr else "Job responsibilities tidak ditemukan setelah diproses."
-                            )
-                        else:
-                            job_responsibilities = "Data posisi terkait tidak ditemukan."
+                    job_responsibilities = await handle_job_responsibilities(user_id, nama_posisi, atasan, retrieve_data)
 
                 job_performance = jp_agent(nama_posisi, band_posisi, retrieve_data, job_responsibilities)
                 job_authorities = ja_agent(nama_posisi, retrieve_data, band_posisi, job_responsibilities, mission_statement)
@@ -135,7 +82,7 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
                     "job_performance": job_performance,
                     "job_authorities": job_authorities,
                 })
-
+                
             table_temp = f"djm_verified_{user_id}"
             async with pool.acquire() as conn:
                 await conn.execute(f"""
@@ -150,6 +97,59 @@ async def handle_create_djm_bawah(user_id: str, data: List[DJMData]):
         err_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
         return JSONResponse(content={"error": err_msg}, status_code=500)
 
+async def handle_job_responsibilities(user_id: str, nama_posisi: str, atasan: str, retrieve_data: str):
+    pool = postgredb_apilogy.pool 
+
+    async with pool.acquire() as conn:
+        existing_jr = await conn.fetchrow(f"""
+            SELECT job_responsibilities FROM jr_temp_{user_id}
+            WHERE nama_posisi = $1
+        """, nama_posisi)
+
+    if existing_jr:
+        print("Sumber JR: database (cache)")
+        return existing_jr["job_responsibilities"]
+
+    else:
+        async with pool.acquire() as conn:
+            related_positions = await conn.fetch(f"""
+                SELECT nama_posisi, band_posisi 
+                FROM excel_djm_{user_id}
+                WHERE atasan = $1
+                AND LOWER(nama_posisi) NOT LIKE '%head of telkom%'
+            """, atasan)
+
+        if related_positions:
+            combined_positions = "; ".join([p["nama_posisi"] for p in related_positions])
+            print("Sumber JR: LLM (generate baru)")
+
+            jr_results_list = jr_agent(combined_positions, retrieve_data)
+
+            async with pool.acquire() as conn:
+                for jr_data in jr_results_list:
+                    nama_posisi_dari_agent = jr_data.get("posisi")
+                    jr_text = jr_data.get("jr")
+
+                    if nama_posisi_dari_agent and jr_text:
+                        await conn.execute(f"""
+                            INSERT INTO jr_temp_{user_id} (nama_posisi, atasan, job_responsibilities)
+                            VALUES ($1, $2, $3)
+                            ON CONFLICT (nama_posisi) 
+                            DO UPDATE SET job_responsibilities = $3
+                        """, nama_posisi_dari_agent, atasan, jr_text)
+
+                new_jr = await conn.fetchrow(f"""
+                    SELECT job_responsibilities FROM jr_temp_{user_id}
+                    WHERE nama_posisi = $1
+                """, nama_posisi)
+
+            return (
+                new_jr["job_responsibilities"]
+                if new_jr else "Job responsibilities tidak ditemukan setelah diproses."
+            )
+
+        else:
+            return "Data posisi terkait tidak ditemukan."
 
 async def store_multiple_djm_in_db(user_id: str, data: List[DJMData]):
     pool = postgredb_apilogy.pool
@@ -168,7 +168,6 @@ async def store_multiple_djm_in_db(user_id: str, data: List[DJMData]):
             )
         """)
 
-        # Loop insert semua data
         for item in data:
             await conn.execute(
                 f"""

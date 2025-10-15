@@ -29,7 +29,7 @@ class ApilogyRunTime:
             "x-api-key": self.api_key
         }
 
-        max_retries = 3
+        max_retries = 5
         delay_seconds = 5
 
         for attempt in range(1, max_retries + 1):
@@ -49,7 +49,7 @@ class ApilogyRunTime:
                     print(f"⚠️ Request gagal (status {response.status_code}). Percobaan ke-{attempt}/3.")
             
             except requests.exceptions.RequestException as e:
-                print(f"❌ Error saat request (percobaan ke-{attempt}/3): {e}")
+                print(f"❌ Error saat request (percobaan ke-{attempt}/5): {e}")
 
             if attempt < max_retries:
                 print(f"⏳ Menunggu {delay_seconds} detik sebelum mencoba lagi...")
